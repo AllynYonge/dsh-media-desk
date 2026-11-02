@@ -815,3 +815,32 @@ test('生图被限流（429）时会等一会儿再试，最多三次', async ()
     await rm(dir, { recursive: true })
   }
 })
+
+test('分镜按竖版 9:16 画，封面和配图保持设置里的尺寸', async () => {
+  const { portraitSize } = await import('../src/images.js')
+  assert.equal(portraitSize('1536x1024'), '1024x1536')
+  assert.equal(portraitSize('1024x1024'), '1024x1024')
+  assert.equal(portraitSize(''), '')
+  const sizes = []
+  const generate = async (_, prompt, { size }) => { sizes.push([prompt.includes('storyboard') || /9:16/.test(prompt) ? 'shot' : 'other', size]); return { buffer: PNG, ext: '.png' } }
+  const callText = async ({ system }) => (isPlan(system) ? { text: PLAN, model: 'd' } : { text: '# T\n正文', model: 'd' })
+  const { dir, store, producer } = await producerFixture({ callText, generate })
+  try {
+    await producer.start('seed_2')
+    await waitDone(producer, 'seed_2')
+    const p = (await store.read()).items.find(i => i.id === 'seed_2').production
+    assert.ok(p.shots.length >= 2)
+    assert.ok(sizes.filter(([kind]) => kind === 'shot').every(([, size]) => size === '1024x1536'), JSON.stringify(sizes))
+    assert.ok(sizes.filter(([kind]) => kind === 'other').every(([, size]) => size === '1536x1024'), JSON.stringify(sizes))
+  } finally {
+    await rm(dir, { recursive: true })
+  }
+})
+
+test('generateImage 可以按次覆盖尺寸', async () => {
+  const { generateImage } = await import('../src/images.js')
+  const calls = []
+  const fetchImpl = async (url, init) => { calls.push(JSON.parse(init.body)); return new Response(JSON.stringify({ data: [{ b64_json: PNG.toString('base64') }] }), { status: 200, headers: { 'content-type': 'application/json' } }) }
+  await generateImage(IMAGE, 'p', { fetchImpl, size: '1024x1536' })
+  assert.equal(calls[0].size, '1024x1536')
+})

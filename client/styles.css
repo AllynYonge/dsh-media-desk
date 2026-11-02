@@ -378,7 +378,7 @@ button.md-stamp:not(:disabled):hover { transform: scale(1.08) rotate(-2deg); }
 .md-plate img { display: block; width: 100%; height: 100%; object-fit: cover; animation: md-develop .9s var(--ease) both; }
 @keyframes md-develop { from { opacity: 0; filter: blur(10px); transform: scale(1.03); } }
 .md-plate.is-paper { border-radius: var(--r-sm); background: #fff; box-shadow: 0 0 0 .5px #17171a40; }
-.md-plate.is-paper img { object-fit: contain; }
+.md-plate.is-paper img { object-fit: cover; }
 .md-plate-mark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--latin-serif); font-size: 26px; line-height: 1; color: #17171a1f; }
 .md-plate-failed { position: absolute; left: 6px; bottom: 6px; display: inline-flex; align-items: center; gap: 3px; padding: 0 6px; border-radius: var(--r-xs); background: var(--card); color: var(--ink3); font-size: 11px; line-height: 18px; box-shadow: var(--dsw-elevation-soft); }
 
@@ -406,14 +406,14 @@ button.md-stamp:not(:disabled):hover { transform: scale(1.08) rotate(-2deg); }
 .md-root .md-pick { background: var(--primary); color: var(--on-primary); box-shadow: var(--dsw-elevation-prominent); }
 
 /* 分镜 */
-.md-shots { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(var(--rows2), minmax(0, 1fr)); gap: 12px; padding: 2px 16px 16px; }
+.md-shots { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 12px 10px; overflow-y: auto; padding: 2px 16px 16px; }
 .md-shot { margin: 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
-.md-shot .md-plate { flex: 1; min-height: 0; }
+.md-shot .md-plate { flex: none; aspect-ratio: 9 / 16; }
 .md-shot figcaption { flex: none; margin-top: 6px; }
 .md-shot-meta { display: block; color: var(--ink3); font-size: 11px; line-height: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .md-shot-meta b { font-family: var(--latin-serif); font-size: 13px; font-weight: 400; color: var(--ink); }
 .md-shot figcaption p { margin-top: 1px; font-size: 12px; line-height: 17px; height: 34px; color: var(--ink2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.md-tile-shots.is-open .md-shots { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(var(--rows3), minmax(0, 1fr)); gap: 16px 18px; padding: 2px 24px 24px; }
+.md-tile-shots.is-open .md-shots { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); max-width: 2000px; margin: 0 auto; gap: 16px 18px; padding: 2px 24px 24px; }
 .md-tile-shots.is-open .md-shot-meta { font-size: 12.5px; line-height: 18px; }
 .md-tile-shots.is-open .md-shot-meta b { font-size: 16px; }
 .md-tile-shots.is-open .md-shot figcaption p { font-size: 13.5px; line-height: 20px; height: 40px; }
@@ -421,7 +421,7 @@ button.md-stamp:not(:disabled):hover { transform: scale(1.08) rotate(-2deg); }
 /* 自适应：宽的时候分镜排成 3×2，窄或矮的时候整页滚动 */
 @container (min-width: 1040px) {
   .md-bento { grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr); }
-  .md-shots { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(var(--rows3), minmax(0, 1fr)); }
+  .md-shots { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @container (max-width: 620px) {
   .md-tile-hero { flex-direction: column; gap: 14px; }
@@ -430,9 +430,9 @@ button.md-stamp:not(:disabled):hover { transform: scale(1.08) rotate(-2deg); }
 @container (max-width: 620px) or (max-height: 620px) {
   .md-bento { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; grid-template-areas: "hero" "article" "shots"; }
   .md-tile-article { height: 480px; }
-  .md-shots { flex: none; grid-template-rows: none; grid-auto-rows: auto; }
+  .md-shots { flex: none; overflow: visible; }
   .md-tile-shots { overflow: visible; }
-  .md-shot .md-plate { flex: none; height: auto; aspect-ratio: 3 / 2; }
+  .md-shot .md-plate { aspect-ratio: 9 / 16; }
 }
 
 /* 窗口太窄时，对话栏改成抽屉 */

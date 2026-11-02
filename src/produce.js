@@ -3,7 +3,7 @@
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { articlePrompts, extractJson, fallbackArticle, fallbackPlan, planPrompts } from './ai.js'
-import { coverPrompt, figurePrompt, shotPrompt } from './images.js'
+import { coverPrompt, figurePrompt, portraitSize, shotPrompt } from './images.js'
 import { newId } from './ops.js'
 import { imageReady } from './settings.js'
 
@@ -294,10 +294,10 @@ export class Producer {
   }
 
   /** 生图服务限流（429）时等一会儿再试，最多再试两次；其他错误直接报。 */
-  async generateWithRetry(image, prompt, signal) {
+  async generateWithRetry(image, prompt, signal, size) {
     for (let attempt = 0; ; attempt += 1) {
       try {
-        return await this.generate(image, prompt, { signal })
+        return await this.generate(image, prompt, { signal, size })
       } catch (err) {
         const limited = err?.status === 429 || /429/.test(String(err?.message))
         if (!limited || attempt >= RETRY_WAIT_MS.length || signal?.aborted) throw err
@@ -320,7 +320,9 @@ export class Producer {
     })
     if (!prompt) return
     try {
-      const { buffer, ext } = await this.generateWithRetry(settings.image, prompt, signal)
+      // 分镜是给手机竖屏拍的，按 9:16 画
+      const size = parseTarget(target).kind === 'shot' ? portraitSize(settings.image.size) : settings.image.size
+      const { buffer, ext } = await this.generateWithRetry(settings.image, prompt, signal, size)
       const name = `${newId('g')}${ext}`
       await writeFile(join(this.store.filesDir, name), buffer)
       await this.patch(id, (production) => {

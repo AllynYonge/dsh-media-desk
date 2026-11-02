@@ -152,11 +152,11 @@ Requires DeepSeek Harness `0.2.1-rc.5` or later in the `0.2.x` line.
 **2. Install.** Run one command from that folder. Quit the desktop app completely (⌘Q) before installing and reopen it after; for the web version, restart `dsh web`. If `dsh` is not on your terminal yet, choose "Manage dsh command" in the desktop app's menu.
 
 ```bash
-dsh plugin --profile desktop add "file:$PWD/dsh-media-desk-2.5.1.tgz"
+dsh plugin --profile desktop add "file:$PWD/dsh-media-desk-2.5.2.tgz"
 ```
 
 ```bash
-dsh plugin --profile web add "file:$PWD/dsh-media-desk-2.5.1.tgz"
+dsh plugin --profile web add "file:$PWD/dsh-media-desk-2.5.2.tgz"
 ```
 
 **3. Open.** "自媒体工作台" appears in the sidebar. The first launch shows sample data so you can see every page; click "示例数据 · 清空" (clear samples) in the top right to start with your own.
