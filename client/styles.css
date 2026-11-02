@@ -781,3 +781,7 @@ button.md-receipt:hover { transform: translateX(2px); }
 .md-root .md-style-filter button.is-on { background: var(--primary); color: var(--on-primary); }
 .md-style-page .md-style-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 .md-style-page .md-style blockquote { font-size: 13px; line-height: 21px; }
+
+/* 空状态 */
+.md-hero-hint { margin-top: 10px; color: var(--ink3); font-size: 12.5px; line-height: 18px; animation: md-rise .5s var(--ease) both; }
+.md-tray-empty { padding: 4px 2px 10px; color: var(--ink3); font-size: 12px; line-height: 18px; }

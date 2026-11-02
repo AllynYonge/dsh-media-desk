@@ -101,6 +101,7 @@ function Hero() {
         <input value={text} onChange={e => setText(e.target.value)} placeholder="记下一个灵感，或贴一个链接" aria-label="记下灵感" />
         <button type="submit" className="md-send" aria-label="记下" disabled={!text.trim()}><Icon name="send" size={15} /></button>
       </form>
+      {roots.length === 0 ? <p className="md-hero-hint">写一句话、贴一个链接，或者把图片和视频拖进来。右上角的助手也能替你记。</p> : null}
       <MiniStamps />
     </section>
   )

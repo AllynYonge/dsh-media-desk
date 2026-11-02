@@ -86,6 +86,11 @@ export function fmtWhen(iso) {
   return `${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+function fmtShort(iso) {
+  const d = new Date(iso)
+  return `${d.getMonth() + 1}月${d.getDate()}日`
+}
+
 const handlers = {
   add_item(state, op, now) {
     const fields = pick(ITEM_FIELDS, op)
@@ -93,7 +98,8 @@ const handlers = {
       id: newId('it'), kind: 'note', title: '', body: '', tags: [], status: 'idea', personaIds: [], createdAt: now, drafts: {}, ...fields,
     }
     if (!item.title && !item.body && !item.media) throw new Error('灵感内容为空')
-    if (!item.title) item.title = short(item.body, 28)
+    // 只贴了图或视频也要有个名字，卡片和回执才有东西可显示
+    if (!item.title) item.title = short(item.body, 28) || (item.media ? `${fmtShort(now)}的${item.kind === 'video' ? '视频' : '图片'}` : '')
     // 新灵感落在首屏文字旁边，一眼就能看到，也不会打乱已有布局
     if (!item.pos && !item.parentId) {
       const n = state.items.filter(row => !row.parentId && row.pos).length
@@ -124,7 +130,11 @@ const handlers = {
     item.scheduledAt = when
     const platform = coerce('platform', op.platform)
     if (platform !== undefined) item.platform = platform
-    if (when && item.status === 'idea') item.status = 'outline'
+    // 排上日历就是待发布；取消排期退回草稿。已发布的不动
+    if (item.status !== 'published') {
+      if (when) item.status = item.production?.status === 'done' || ['draft', 'ready'].includes(item.status) ? 'ready' : 'outline'
+      else if (item.status === 'ready') item.status = 'draft'
+    }
     return { text: when ? `把《${short(item.title)}》排到 ${fmtWhen(when)}${item.platform ? ` · ${item.platform}` : ''}` : `取消《${short(item.title)}》的排期`, target: item.id, kind: 'item' }
   },
   set_status(state, op) {

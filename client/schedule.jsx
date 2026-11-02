@@ -168,6 +168,7 @@ function Rail({ items }) {
             </>
           ) : null}
           <h3>灵感 <span>{ideas.length}</span></h3>
+          {!ready.length && !ideas.length ? <p className="md-tray-empty">记下灵感或做好稿子后，从这里拖到日历上。</p> : null}
           <div className="md-tray-list">
             {ideas.map(item => (
               <button type="button" key={item.id} draggable className="md-tray-item" onDragStart={event => startDrag(event, item.id)} onClick={() => openItem(item.id)}>

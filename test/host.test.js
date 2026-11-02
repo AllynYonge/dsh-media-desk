@@ -775,3 +775,19 @@ test('Monid：封面存到本地，内网地址、非图片和已有封面都跳
   assert.equal((await readdir(dir)).length, 1)
   await rm(dir, { recursive: true })
 })
+
+test('排期：排上日历就是待发布，取消排期退回草稿，已发布不动', () => {
+  const state = seed()
+  const [ideaR, doneR] = applyOps(state, [{ op: 'add_item', title: '只有灵感' }, { op: 'add_item', title: '已成稿' }]).receipts
+  const done = state.items.find(row => row.id === doneR.target)
+  done.production = { status: 'done', title: '已成稿' }
+  applyOps(state, [{ op: 'schedule_item', id: ideaR.target, scheduledAt: '2026-12-01T12:00:00Z' }, { op: 'schedule_item', id: doneR.target, scheduledAt: '2026-12-01T12:00:00Z' }])
+  assert.equal(state.items.find(row => row.id === ideaR.target).status, 'outline')
+  assert.equal(done.status, 'ready')
+  applyOps(state, [{ op: 'schedule_item', id: doneR.target, scheduledAt: null }])
+  assert.equal(done.status, 'draft')
+  applyOps(state, [{ op: 'update_item', id: doneR.target, status: 'published' }, { op: 'schedule_item', id: doneR.target, scheduledAt: null }])
+  assert.equal(done.status, 'published')
+  const [media] = applyOps(state, [{ op: 'add_item', kind: 'image', media: { src: 'media-desk/files/x.png' } }]).receipts
+  assert.match(state.items.find(row => row.id === media.target).title, /的图片$/)
+})
