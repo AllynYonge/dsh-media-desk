@@ -9,6 +9,8 @@
 
 <p align="center"><b>DeepSeek Harness 的一个插件。记一句灵感，一键做出脚本、封面、配图和分镜。</b></p>
 
+<p align="center">由小红书科技博主 <a href="https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3"><b>蜗牛的科技笔记</b></a> 开发，一个每天要发内容的人，给自己做的工作台。</p>
+
 <p align="center">
   <a href="https://github.com/woniuniuniu/dsh-media-desk/releases/latest">下载安装</a> ·
   <a href="#三步上手">三步上手</a> ·
@@ -233,6 +235,10 @@ dsh plugin --profile web add "file:$PWD/dsh-media-desk-2.4.0.tgz"
 </details>
 
 <br>
+
+## 作者
+
+我是 [蜗牛的科技笔记](https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3)，在小红书做科技内容，小红书号 `1097519508`。这个工作台是我自己每天用的：灵感记不住、成稿太慢、发完不知道效果，这三件事我都踩过，所以做成了这样。用得顺手或者不顺手，欢迎提 [Issue](https://github.com/woniuniuniu/dsh-media-desk/issues)，也欢迎来小红书找我聊。
 
 ## 开发
 

@@ -9,6 +9,8 @@
 
 <p align="center"><b>A DeepSeek Harness plugin. Jot an idea; one click makes the script, cover, figures and storyboard.</b></p>
 
+<p align="center">Built by <a href="https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3"><b>蜗牛的科技笔记</b></a>, a tech creator on Xiaohongshu, as the desk for their own daily publishing.</p>
+
 <p align="center">
   <a href="https://github.com/woniuniuniu/dsh-media-desk/releases/latest">Download</a> ·
   <a href="#three-steps">Three steps</a> ·
@@ -236,6 +238,10 @@ No, it is a community plugin. Scripts are written by whichever model you configu
 </details>
 
 <br>
+
+## Author
+
+I am [蜗牛的科技笔记](https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3) (Snail's Tech Notes), a tech creator on Xiaohongshu, ID `1097519508`. This desk is what I use every day: ideas I could not hold on to, drafts that took too long, posts whose results I never checked. It is built around those three problems. Issues and ideas are welcome on [GitHub](https://github.com/woniuniuniu/dsh-media-desk/issues).
 
 ## Development
 
