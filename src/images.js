@@ -24,9 +24,9 @@ function explain(status, detail) {
   return detail ? `生图服务返回 ${status}：${detail}` : `生图服务返回 ${status}`
 }
 
-async function requestOnce(image, prompt, fetchImpl, signal, size = image.size) {
+async function requestOnce(image, prompt, fetchImpl, signal) {
   const extra = image.extra ? JSON.parse(image.extra) : {}
-  const body = { model: image.model, prompt, n: 1, ...(size ? { size } : {}), ...(image.quality ? { quality: image.quality } : {}), ...extra }
+  const body = { model: image.model, prompt, n: 1, ...(image.size ? { size: image.size } : {}), ...(image.quality ? { quality: image.quality } : {}), ...extra }
   const res = await fetchImpl(`${image.baseUrl}/images/generations`, {
     method: 'POST',
     headers: { authorization: `Bearer ${image.apiKey}`, 'content-type': 'application/json' },
@@ -66,13 +66,13 @@ async function requestOnce(image, prompt, fetchImpl, signal, size = image.size) 
  * @param {{fetchImpl?: typeof fetch, signal?: AbortSignal}} [options]
  * @returns {Promise<{buffer: Buffer, ext: string}>} 图片内容和扩展名。
  */
-export async function generateImage(image, prompt, { fetchImpl = fetch, signal, size } = {}) {
+export async function generateImage(image, prompt, { fetchImpl = fetch, signal } = {}) {
   let lastError = null
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const timeout = AbortSignal.timeout(TIMEOUT_MS)
     const combined = signal ? AbortSignal.any([signal, timeout]) : timeout
     try {
-      const { buffer } = await requestOnce(image, prompt, fetchImpl, combined, size)
+      const { buffer } = await requestOnce(image, prompt, fetchImpl, combined)
       if (buffer.length > MAX_IMAGE_BYTES) throw new Error('图片太大')
       const ext = extensionOf(buffer)
       if (!ext) throw new Error('返回的内容不是图片')
@@ -101,13 +101,5 @@ export function figurePrompt(prompt) {
 }
 
 export function shotPrompt(prompt, characters) {
-  return `${SHOT_STYLE} Vertical 9:16 portrait framing for a phone screen, the subject fills the frame top to bottom. ${characters ? `Recurring characters and setting: ${characters}. ` : ''}${prompt}`
-}
-
-/** 分镜按竖版画：把「宽x高」换成「高x宽」里更窄的那个在前。空尺寸原样返回。 */
-export function portraitSize(size) {
-  const match = /^(\d+)\s*[x×]\s*(\d+)$/i.exec(String(size ?? '').trim())
-  if (!match) return size
-  const [a, b] = [Number(match[1]), Number(match[2])]
-  return `${Math.min(a, b)}x${Math.max(a, b)}`
+  return `${SHOT_STYLE} Widescreen 16:9 landscape framing, the scene fills the whole frame edge to edge, no borders. ${characters ? `Recurring characters and setting: ${characters}. ` : ''}${prompt}`
 }

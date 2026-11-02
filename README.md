@@ -151,11 +151,11 @@
 **2. 安装。** 在那个文件夹里执行一条命令。桌面版要先完全退出（⌘Q）再装，装好重新打开；网页版装好后重启 `dsh web`。终端里没有 `dsh` 的话，先在桌面版菜单里选「管理 dsh 命令」。
 
 ```bash
-dsh plugin --profile desktop add "file:$PWD/dsh-media-desk-2.5.2.tgz"
+dsh plugin --profile desktop add "file:$PWD/dsh-media-desk-2.5.3.tgz"
 ```
 
 ```bash
-dsh plugin --profile web add "file:$PWD/dsh-media-desk-2.5.2.tgz"
+dsh plugin --profile web add "file:$PWD/dsh-media-desk-2.5.3.tgz"
 ```
 
 **3. 打开。** 侧栏会出现「自媒体工作台」。第一次看到的都是示例数据，方便你先看看每个页面长什么样；点右上角「示例数据 · 清空」，换成自己的。
