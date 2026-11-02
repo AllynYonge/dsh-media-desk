@@ -791,3 +791,27 @@ test('排期：排上日历就是待发布，取消排期退回草稿，已发�
   const [media] = applyOps(state, [{ op: 'add_item', kind: 'image', media: { src: 'media-desk/files/x.png' } }]).receipts
   assert.match(state.items.find(row => row.id === media.target).title, /的图片$/)
 })
+
+test('生图被限流（429）时会等一会儿再试，最多三次', async () => {
+  const calls = { s1: 0, other: 0 }
+  const generate = async (_, prompt) => {
+    if (prompt.includes('s1')) {
+      calls.s1 += 1
+      if (calls.s1 < 3) throw new Error('请求太频繁或额度不足（429）')
+    } else calls.other += 1
+    return { buffer: PNG, ext: '.png' }
+  }
+  const callText = async ({ system }) => (isPlan(system) ? { text: PLAN, model: 'd' } : { text: '# T\n正文', model: 'd' })
+  const { dir, store, producer } = await producerFixture({ callText, generate })
+  producer.retryScale = 0.001
+  try {
+    await producer.start('seed_2')
+    await waitDone(producer, 'seed_2')
+    const p = (await store.read()).items.find(i => i.id === 'seed_2').production
+    assert.equal(calls.s1, 3)
+    assert.equal(p.shots[0].status, 'done')
+    assert.ok(p.shots.every(row => row.status === 'done'))
+  } finally {
+    await rm(dir, { recursive: true })
+  }
+})

@@ -7,7 +7,8 @@ import { coverPrompt, figurePrompt, shotPrompt } from './images.js'
 import { newId } from './ops.js'
 import { imageReady } from './settings.js'
 
-const CONCURRENCY = 4
+const CONCURRENCY = 3
+const RETRY_WAIT_MS = [6000, 14000]
 
 function splitTitle(markdown, fallback) {
   const match = /^\s*#\s+(.+)\n?/.exec(markdown)
@@ -292,6 +293,22 @@ export class Producer {
     }
   }
 
+  /** 生图服务限流（429）时等一会儿再试，最多再试两次；其他错误直接报。 */
+  async generateWithRetry(image, prompt, signal) {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await this.generate(image, prompt, { signal })
+      } catch (err) {
+        const limited = err?.status === 429 || /429/.test(String(err?.message))
+        if (!limited || attempt >= RETRY_WAIT_MS.length || signal?.aborted) throw err
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(resolve, RETRY_WAIT_MS[attempt] * (this.retryScale ?? 1))
+          signal?.addEventListener('abort', () => { clearTimeout(timer); reject(new Error('cancelled')) }, { once: true })
+        })
+      }
+    }
+  }
+
   async renderAsset(id, target, settings, signal) {
     let prompt = null
     await this.patch(id, (production) => {
@@ -303,7 +320,7 @@ export class Producer {
     })
     if (!prompt) return
     try {
-      const { buffer, ext } = await this.generate(settings.image, prompt, { signal })
+      const { buffer, ext } = await this.generateWithRetry(settings.image, prompt, signal)
       const name = `${newId('g')}${ext}`
       await writeFile(join(this.store.filesDir, name), buffer)
       await this.patch(id, (production) => {
