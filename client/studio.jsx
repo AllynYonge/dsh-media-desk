@@ -37,13 +37,15 @@ function askAbout(label, text = '') {
 }
 
 /** 一张图。空的时候只有底色和淡淡的记号，不放文字。 */
-function Plate({ asset, paper = false, mark = null, alt = '', onOpen }) {
+function Plate({ asset, paper = false, mark = null, alt = '', onOpen, onRetry }) {
   const status = asset?.status ?? 'idle'
   const clickable = Boolean(asset?.src && onOpen)
+  const retry = onRetry && ['failed', 'skipped', 'idle'].includes(status) && !asset?.src
   return (
     <div className={`md-plate ${paper ? 'is-paper' : 'is-wash'} ${clickable ? 'is-clickable' : ''}`} data-status={status} onClick={clickable ? onOpen : undefined} role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined} onKeyDown={clickable ? (event) => { if (event.key === 'Enter') onOpen(event) } : undefined} aria-label={clickable ? `查看 ${alt}`.trim() : undefined}>
       {asset?.src ? <img key={asset.src} src={asset.src} alt={alt} draggable={false} /> : mark ? <span className="md-plate-mark" aria-hidden="true">{mark}</span> : null}
-      {status === 'failed' ? <span className="md-plate-failed" title={asset.error}><Icon name="refresh" size={12} />没画成</span> : null}
+      {retry ? <button type="button" className="md-plate-failed" title={asset?.error} onClick={(event) => { event.stopPropagation(); onRetry() }}><Icon name="refresh" size={12} />{status === 'failed' ? '没画成，重画' : '画这张'}</button>
+        : status === 'failed' ? <span className="md-plate-failed" title={asset.error}><Icon name="refresh" size={12} />没画成</span> : null}
     </div>
   )
 }
@@ -108,7 +110,7 @@ function IdeaCard({ item, live, settings }) {
 }
 
 /** 视频封面：画面叠大字。没有画面时是一张渐变的纯文字封面。 */
-function Poster({ production, item, onOpen }) {
+function Poster({ production, item, onOpen, onRetry }) {
   const src = production?.cover?.src ?? (!production ? item.media?.poster ?? (item.media?.src && item.kind !== 'video' ? item.media.src : null) : null)
   const text = production?.stage === 'brief' ? '' : production?.coverText || production?.title || ''
   const status = production?.cover?.status ?? 'idle'
@@ -116,6 +118,7 @@ function Poster({ production, item, onOpen }) {
     <div className={`md-poster ${src ? '' : 'is-type'}`} data-status={status} onClick={production?.cover?.src ? onOpen : undefined} role={production?.cover?.src ? 'button' : undefined}>
       {src ? <img key={src} src={src} alt="视频封面" draggable={false} /> : null}
       {text ? <b>{text}</b> : null}
+      {onRetry && ['failed', 'skipped'].includes(status) ? <button type="button" className="md-plate-failed" title={production?.cover?.error} onClick={(event) => { event.stopPropagation(); onRetry() }}><Icon name="refresh" size={12} />{status === 'failed' ? '封面没画成，重画' : '画封面'}</button> : null}
     </div>
   )
 }
@@ -183,8 +186,8 @@ function HeroTile({ item, live, onView }) {
         ) : null}
       </div>
       <div className="md-collage">
-        <div className="md-collage-main"><Poster production={production} item={item} onOpen={() => onView('cover')} /></div>
-        {showFigures ? figures.map((image, i) => <div key={i} className={`md-collage-side is-${i}`}><Plate asset={image} alt={image?.caption ?? `配图 ${i + 1}`} onOpen={image?.src ? () => onView(`image:${i}`) : undefined} /></div>) : null}
+        <div className="md-collage-main"><Poster production={production} item={item} onOpen={() => onView('cover')} onRetry={settings?.imageReady && production?.status === 'done' && production.cover ? () => regenAsset(item.id, 'cover') : undefined} /></div>
+        {showFigures ? figures.map((image, i) => <div key={i} className={`md-collage-side is-${i}`}><Plate asset={image} alt={image?.caption ?? `配图 ${i + 1}`} onOpen={image?.src ? () => onView(`image:${i}`) : undefined} onRetry={image && settings?.imageReady && production?.status === 'done' ? () => regenAsset(item.id, `image:${i}`) : undefined} /></div>) : null}
       </div>
       <div className="md-hero-corner">
         {production?.savedAt ? <IconButton icon="folder" label="打开保存的文件夹" onClick={() => revealSaved(item.id)} /> : null}
@@ -306,6 +309,7 @@ function ArticleTile({ item, live, open, onToggle, onView, tileRef }) {
 }
 
 function ShotsTile({ item, live, count, open, onToggle, onView }) {
+  const imageReady = useDesk(s => s.settings?.imageReady)
   const shots = item.production?.shots ?? []
   const visuals = live?.visuals ?? []
   // 策划案还在写的时候，分镜说明已经一格一格出现了
@@ -332,7 +336,7 @@ function ShotsTile({ item, live, count, open, onToggle, onView }) {
       <div className="md-shots" style={{ '--rows2': Math.ceil(cells.length / 2), '--rows3': Math.ceil(cells.length / 3) }}>
         {cells.map((shot, index) => (
           <figure key={index} className="md-shot">
-            <Plate asset={shot} paper alt={shot.visual} mark={String(shot.no ?? index + 1).padStart(2, '0')} onOpen={shot.src ? () => onView(`shot:${index}`) : undefined} />
+            <Plate asset={shot} paper alt={shot.visual} mark={String(shot.no ?? index + 1).padStart(2, '0')} onOpen={shot.src ? () => onView(`shot:${index}`) : undefined} onRetry={imageReady && item.production?.status === 'done' && shot.prompt !== undefined ? () => regenAsset(item.id, `shot:${index}`) : undefined} />
             <figcaption>
               <span className="md-shot-meta"><b>{String(shot.no ?? index + 1).padStart(2, '0')}</b>{shot.shot ? ` ${shot.shot} · ${shot.seconds} 秒` : ''}</span>
               <p>{shot.voice || shot.visual}</p>
@@ -517,6 +521,8 @@ export function Studio() {
     return () => window.removeEventListener('keydown', onKey)
   }, [id])
 
+  // 打开的这条被删掉或撤销掉时，退回灵感墙，不留空白页
+  React.useEffect(() => { if (id && !item) closeItem() }, [id, item])
   if (!item) return null
   return (
     <div className={`md-studio ${chatOpen ? 'chat-open' : ''}`} ref={ref} role="dialog" aria-label="灵感">

@@ -1,7 +1,13 @@
 // 自我强化：从真实数据和你对草稿的修改里提炼规则，确认后才生效，并可导出成 DeepSeek Harness Skill。
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { activeStyle, styleToVoice } from './style.js'
+
+/** 按这台电脑的时区算日期，北京时间早上发的内容不会算到前一天。 */
+function localDay(iso) {
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? String(iso).slice(0, 10) : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 function sum(rows, key) {
   return rows.reduce((total, row) => total + (row[key] || 0), 0)
@@ -119,7 +125,7 @@ export function computeInsights(state) {
   const totals = itemTotals({ metrics })
   const daily = new Map()
   for (const metric of metrics) {
-    const day = metric.date.slice(0, 10)
+    const day = localDay(metric.date)
     const entry = daily.get(day) ?? { date: day, views: 0, engaged: 0 }
     entry.views += metric.views || 0
     entry.engaged += engagement(metric)
@@ -166,9 +172,13 @@ export async function exportSkill(state, home) {
   const rules = state.skills.filter(skill => !skill.sample && (skill.status === 'active' || skill.status === 'exported'))
   const picked = activeStyle(state)
   const style = picked && !picked.preset ? picked : null
-  if (!rules.length && !style) throw new Error('还没有你自己的风格或规则。示例规则和模板不会被导出')
   const name = 'media-desk-voice'
   const dir = join(home, 'skills', name)
+  if (!rules.length && !style) {
+    // 之前导出过的旧 Skill 不再代表现在的设置，撤掉它
+    await rm(dir, { recursive: true, force: true })
+    throw Object.assign(new Error('还没有你自己的风格或规则。示例规则和模板不会被导出'), { status: 400 })
+  }
   await mkdir(dir, { recursive: true })
   const description = '作者的自媒体写作风格和规则。写选题、脚本、标题或封面文案时使用。'
   const styleBlock = style ? `## 风格：${style.name}\n\n${styleToVoice(style)}\n\n` : ''

@@ -117,8 +117,8 @@ export async function regenAsset(id, target) {
   }
 }
 
-function mergeProduction(id, production) {
-  setDesk(s => ({ state: { ...s.state, items: s.state.items.map(item => (item.id === id ? { ...item, production } : item)) } }))
+function mergeProduction(id, production, status) {
+  setDesk(s => ({ state: { ...s.state, items: s.state.items.map(item => (item.id === id ? { ...item, production, ...(status ? { status } : {}) } : item)) } }))
 }
 
 /** 轮询进度，返回停止函数。 */
@@ -130,7 +130,7 @@ export function watchProduction(id) {
         const data = await request(`production?id=${encodeURIComponent(id)}`)
         if (stopped) return
         setDesk(s => ({ live: { ...s.live, [id]: data.live } }))
-        if (data.production) mergeProduction(id, data.production)
+        if (data.production) mergeProduction(id, data.production, data.status)
       } catch {
         // 连接抖动时下一轮再试
       }

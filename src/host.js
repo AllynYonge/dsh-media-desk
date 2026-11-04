@@ -123,7 +123,10 @@ async function chatTurn(ctx, store, desk, body) {
     notice = outageNotice(ctx, wasDown, '先用本地规则处理')
     plan = localIntent(snapshot, message, { focusId })
   }
-  const result = await store.mutate(`对话：${message.slice(0, 18)}`, (draft) => {
+  const settings = await desk.settings.read()
+  const canDraw = imageReady(settings)
+  // 只把真正改了数据的那一步放进撤销；问一句话不占撤销位
+  const changed = await store.mutate(`对话：${message.slice(0, 18)}`, (draft) => {
     const target = focusId ? draft.items.find(row => row.id === focusId) : null
     const production = target?.production?.status === 'done' ? target.production : null
     // 本地规则只会改灵感标题；有成稿时要改的是成稿标题
@@ -138,18 +141,29 @@ async function chatTurn(ctx, store, desk, body) {
       receipts.push(...revision.receipts.map(text => ({ text })))
       errors.push(...revision.errors)
       targets = revision.targets
+      // 没接生图时，图不会重画，回执要说实话
+      if (!canDraw && targets.length) {
+        receipts.splice(0, receipts.length, ...receipts.map(row => (/^重画/.test(row.text) ? { text: row.text.replace(/^重画/, '更新了画面描述：') + '（接入生图模型后才会重画）' } : row)))
+        targets = []
+      }
     }
+    return { receipts, errors, targets, done: Boolean(production) }
+  })
+  const result = await store.mutate('对话记录', (draft) => {
+    const { receipts, errors, targets, done } = changed
     const at = new Date().toISOString()
     const itemId = focusId ?? undefined
-    const actions = Array.isArray(plan.actions) ? plan.actions.filter(a => a && ['produce', 'open', 'nav'].includes(a.type)) : []
+    // 已经做好的成稿不会因为一句话被整篇重做，要重做请点「重新成稿」
+    const actions = (Array.isArray(plan.actions) ? plan.actions : [])
+      .filter(a => a && ['produce', 'open', 'nav'].includes(a.type))
+      .filter(a => !(a.type === 'produce' && (done && a.id === focusId || draft.items.find(row => row.id === a.id)?.production?.status === 'done')))
     draft.chat.push({ id: newId('c'), at, role: 'user', text: message, itemId })
     const answer = { id: newId('c'), at, role: 'assistant', text: plan.reply, receipts, errors, engine, notice, undoable: receipts.length > 0, itemId }
     draft.chat.push(answer)
     draft.chat = draft.chat.slice(-300)
     return { answer, actions, targets, state: draft, modelOk: modelStatus.ok, modelError: modelStatus.error }
-  })
-  const settings = await desk.settings.read()
-  if (imageReady(settings)) {
+  }, { undoable: false })
+  if (canDraw) {
     await Promise.all(result.targets.map(target => desk.producer.regenerate(focusId, target).catch(() => {})))
     return { ...result, state: await store.read() }
   }
@@ -283,12 +297,16 @@ async function route(ctx, store, desk, req, res) {
     return sendFile(req, res, join(store.filesDir, name))
   }
   if (method === 'GET') {
-    if (path === 'state') return json(res, 200, { state: await store.read(), model: engineLabel(ctx), modelOk: modelStatus.ok, modelError: modelStatus.error, canUndo: store.undo.length > 0 })
+    if (path === 'state') {
+      if (!desk.settled) { desk.settled = true; await desk.producer.settleAll().catch(() => {}) }
+      return json(res, 200, { state: await store.read(), model: engineLabel(ctx), modelOk: modelStatus.ok, modelError: modelStatus.error, canUndo: store.undo.length > 0 })
+    }
     if (path === 'production') {
       const id = url.searchParams.get('id') ?? ''
       await desk.producer.settle(id)
       const state = await store.read()
-      return json(res, 200, { production: state.items.find(row => row.id === id)?.production ?? null, live: desk.producer.status(id) })
+      const item = state.items.find(row => row.id === id)
+      return json(res, 200, { production: item?.production ?? null, status: item?.status, live: desk.producer.status(id) })
     }
     if (path === 'settings') return json(res, 200, { ...publicSettings(await desk.settings.read()), defaultExportDir: defaultExportDir() })
     if (path === 'insights') return json(res, 200, computeInsights(await store.read()))
@@ -378,8 +396,12 @@ async function route(ctx, store, desk, req, res) {
     case 'account/refresh': return json(res, 200, await refreshAccount(store, body))
     case 'skills/learn': {
       const proposals = proposeRules(await store.read())
+      if (!proposals.length) return json(res, 200, { added: 0, state: await store.read() })
       const state = await store.mutate('从数据中学习', (draft) => {
-        applyOps(draft, proposals.map(row => ({ op: 'add_skill', ...row, status: 'proposed' })))
+        // 只用示例数据算出来的建议也算示例，清空示例时一起清掉，也不会被导出
+        const fromSamples = !draft.metrics.some(metric => !metric.sample)
+        const { receipts } = applyOps(draft, proposals.map(row => ({ op: 'add_skill', ...row, status: 'proposed' })))
+        if (fromSamples) for (const receipt of receipts) { const skill = draft.skills.find(row => row.id === receipt?.target); if (skill) skill.sample = true }
         return draft
       })
       return json(res, 200, { added: proposals.length, state })

@@ -48,7 +48,8 @@ function Calendar({ items }) {
   const first = new Date(y, m, 1).getDay()
   const cells = []
   for (let i = 0; i < 42; i += 1) cells.push(new Date(y, m, i - first + 1))
-  const rows = cells[35].getMonth() === m ? cells : cells.slice(0, 35)
+  // 2 月 1 日正好是周日时只需要 4 行，多数月份 5 行，少数 6 行
+  const rows = cells[28].getMonth() !== m ? cells.slice(0, 28) : cells[35].getMonth() === m ? cells : cells.slice(0, 35)
   const byDay = React.useMemo(() => {
     const map = new Map()
     for (const item of items) {

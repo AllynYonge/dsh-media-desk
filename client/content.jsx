@@ -2,7 +2,7 @@
 import React from 'react'
 import { dispatchOps, openItem, setDesk, useDesk } from './desk.js'
 import { Empty, Icon, Segmented } from './ui.jsx'
-import { KIND_LABEL, STATUSES, STATUS_LABEL, fmtWhen, posterOf, relativeDay } from './util.js'
+import { KIND_LABEL, STATUSES, STATUS_LABEL, displayItem, fmtWhen, posterOf, relativeDay } from './util.js'
 
 function useContentItems() {
   const items = useDesk(s => s.state.items)
@@ -13,7 +13,9 @@ function useContentItems() {
   }), [items, query])
 }
 
-function BoardCard({ item }) {
+function BoardCard({ item: raw }) {
+  // 有成稿时显示成稿的标题和封面
+  const item = displayItem(raw)
   const poster = posterOf(item)
   return (
     <button
@@ -34,7 +36,7 @@ function BoardCard({ item }) {
       <span className="md-board-meta">
         {item.platform ? <span>{item.platform}</span> : null}
         {item.scheduledAt && item.status !== 'published' ? <span className="is-time">{relativeDay(item.scheduledAt)}</span> : null}
-        {item.drafts?.article ? <Icon name="pen" size={12} /> : null}
+        {raw.production?.status === 'done' || item.drafts?.article ? <Icon name="pen" size={12} /> : null}
         {item.drafts?.script ? <Icon name="film" size={12} /> : null}
       </span>
     </button>
@@ -142,7 +144,7 @@ export function ContentView() {
   const items = useContentItems()
   const query = useDesk(s => s.query)
   const counts = STATUSES.map(s => items.filter(i => i.status === s && !(i.parentId && s === 'idea')).length)
-  const drafts = items.filter(i => i.drafts?.article || i.drafts?.script).length
+  const drafts = items.filter(i => i.production?.status === 'done' || i.drafts?.article || i.drafts?.script).length
   return (
     <div className="md-page">
       <header className="md-page-head">

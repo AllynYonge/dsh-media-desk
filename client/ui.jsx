@@ -76,17 +76,21 @@ export function Segmented({ value, options, onChange, label }) {
 
 export function Dialog({ title, onClose, children, width = 440 }) {
   const ref = React.useRef(null)
+  // onClose 每次渲染都可能是新函数；放进 ref，免得每打一个字焦点就被抢走
+  const close = React.useRef(onClose)
+  close.current = onClose
   React.useEffect(() => {
     const onKey = (event) => {
       if (event.key === 'Escape') {
         event.stopPropagation()
-        onClose()
+        close.current()
       }
     }
     window.addEventListener('keydown', onKey, true)
-    ref.current?.querySelector('input,textarea,select,button')?.focus()
+    const body = ref.current
+    ;(body?.querySelector('.md-dialog-head ~ * input, .md-dialog-head ~ * textarea, .md-dialog-head ~ * select') ?? body?.querySelector('.md-dialog-head ~ * button'))?.focus()
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [onClose])
+  }, [])
   return (
     <div className="md-dialog-mask" onPointerDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
       <div className="md-dialog" role="dialog" aria-modal="true" aria-label={title} style={{ width }} ref={ref}>

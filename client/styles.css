@@ -785,3 +785,7 @@ button.md-receipt:hover { transform: translateX(2px); }
 /* 空状态 */
 .md-hero-hint { margin-top: 10px; color: var(--ink3); font-size: 12.5px; line-height: 18px; animation: md-rise .5s var(--ease) both; }
 .md-tray-empty { padding: 4px 2px 10px; color: var(--ink3); font-size: 12px; line-height: 18px; }
+
+.md-poster .md-plate-failed { z-index: 3; }
+.md-root button.md-plate-failed { cursor: pointer; }
+.md-root button.md-plate-failed:hover { color: var(--ink); }

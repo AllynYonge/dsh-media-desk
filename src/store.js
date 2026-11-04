@@ -7,6 +7,55 @@ import { buildSeed, migrateState } from './seed.js'
 
 const MAX_UNDO = 30
 
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value)
+const keyed = list => list.every(row => isObject(row) && typeof row.id === 'string')
+
+function revertList(before, after, current) {
+  const was = new Map(before.map(row => [row.id, row]))
+  const now = new Map(after.map(row => [row.id, row]))
+  // 这一步新增的行撤掉，两边都有的行逐字段撤回，其余（之后才加的）原样保留
+  const result = current
+    .filter(row => !(now.has(row.id) && !was.has(row.id)))
+    .map(row => (was.has(row.id) && now.has(row.id) ? revertChange(was.get(row.id), now.get(row.id), row) : row))
+  // 这一步删掉的行放回原来的位置
+  const present = new Set(result.map(row => row.id))
+  before.forEach((row, index) => {
+    if (now.has(row.id) || present.has(row.id)) return
+    result.splice(Math.min(index, result.length), 0, structuredClone(row))
+    present.add(row.id)
+  })
+  return result
+}
+
+/**
+ * 三方合并式撤销：只撤回这一步改过、之后又没被别的操作改动的部分。
+ * 撤销「切换风格」不会抹掉之后生成的成稿；撤销「对话改标题」不会把之后画好的图退回去。
+ * @param {*} before - 这一步之前的值。
+ * @param {*} after - 这一步之后的值。
+ * @param {*} current - 现在的值。
+ * @returns {*} 撤销后的值。
+ */
+export function revertChange(before, after, current) {
+  if (same(before, after)) return current
+  if (same(current, after)) return before === undefined ? undefined : structuredClone(before)
+  if (isObject(before) && isObject(after) && isObject(current)) {
+    const result = { ...current }
+    for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
+      const value = revertChange(before[key], after[key], current[key])
+      if (value === undefined) delete result[key]
+      else result[key] = value
+    }
+    return result
+  }
+  if (Array.isArray(before) && Array.isArray(after) && Array.isArray(current)) {
+    if (keyed(before) && keyed(after) && keyed(current) && (before.length || after.length)) return revertList(before, after, current)
+    if (before.length === after.length && after.length === current.length) return current.map((row, index) => revertChange(before[index], after[index], row))
+  }
+  // 之后又被改过且无法逐项合并时，保留现在的值
+  return current
+}
+
 export function dshHome(env = process.env) {
   return env.DSH_HOME || join(homedir(), '.dsh')
 }
@@ -73,8 +122,12 @@ export class Store {
       const before = undoable ? JSON.stringify(this.state) : null
       const result = await mutate(this.state)
       if (undoable) {
-        this.undo.push({ label, before })
-        if (this.undo.length > MAX_UNDO) this.undo.shift()
+        const after = JSON.stringify(this.state)
+        // 什么都没改的操作不占撤销位，免得用户点撤销却没反应
+        if (after !== before) {
+          this.undo.push({ label, before, after })
+          if (this.undo.length > MAX_UNDO) this.undo.shift()
+        }
       }
       await this.persist()
       return result
@@ -85,7 +138,8 @@ export class Store {
     return this.run(async () => {
       const entry = this.undo.pop()
       if (!entry) return null
-      this.state = JSON.parse(entry.before)
+      await this.refresh()
+      this.state = revertChange(JSON.parse(entry.before), JSON.parse(entry.after), this.state)
       await this.persist()
       return entry.label
     })

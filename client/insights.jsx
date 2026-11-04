@@ -3,7 +3,7 @@ import React from 'react'
 import { dispatchOps, fetchInsights, learnSkills, openItem, setDesk, toast, useDesk } from './desk.js'
 import { ConnectDialog } from './connect.jsx'
 import { Icon, Segmented } from './ui.jsx'
-import { PLATFORMS, compact, displayItem, posterOf } from './util.js'
+import { PLATFORMS, compact, displayItem, posterOf, dayKey } from './util.js'
 
 function niceMax(value) {
   if (value <= 0) return 1
@@ -74,7 +74,7 @@ function addMetric(items) {
   setDesk({
     dialog: {
       title: '录入一条数据',
-      initial: { platform: '公众号', date: new Date().toISOString().slice(0, 10) },
+      initial: { platform: '公众号', date: dayKey(new Date()) },
       fields: [
         { name: 'itemId', label: '对应内容', type: 'select', options: [{ value: '', label: '不关联内容' }, ...items.filter(i => !i.parentId).map(i => ({ value: i.id, label: displayItem(i).title.slice(0, 26) }))] },
         { name: 'platform', label: '平台', type: 'select', options: PLATFORMS.map(v => ({ value: v, label: v })) },

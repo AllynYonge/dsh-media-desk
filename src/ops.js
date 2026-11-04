@@ -91,6 +91,23 @@ function fmtShort(iso) {
   return `${d.getMonth() + 1}月${d.getDate()}日`
 }
 
+/** 改状态时一并维护发布时间：进入已发布记下时间，离开已发布清掉。 */
+function applyStatus(item, status) {
+  item.status = status
+  if (status === 'published' && !item.publishedAt) item.publishedAt = new Date().toISOString()
+  if (status !== 'published') delete item.publishedAt
+}
+
+/** 排上日历就是待发布（还没成稿的算大纲）；取消排期退回去。已发布的不动。 */
+function applySchedule(item, when) {
+  item.scheduledAt = when
+  if (item.status === 'published') return
+  const produced = item.production?.status === 'done'
+  if (when) item.status = produced || ['draft', 'ready'].includes(item.status) ? 'ready' : 'outline'
+  else if (item.status === 'ready') item.status = 'draft'
+  else if (item.status === 'outline' && !produced) item.status = 'idea'
+}
+
 const handlers = {
   add_item(state, op, now) {
     const fields = pick(ITEM_FIELDS, op)
@@ -106,14 +123,18 @@ const handlers = {
       const scale = 1 + (n % 6) * 0.2
       item.pos = { x: Math.round(Math.cos(n * 2.39996) * 580 * scale), y: Math.round(Math.sin(n * 2.39996) * 340 * scale), r: ((n % 5) - 2) * 1.2 }
     }
+    if (item.scheduledAt) applySchedule(item, item.scheduledAt)
+    if (item.status === 'published') applyStatus(item, 'published')
     state.items.unshift(item)
     return { text: `记下灵感《${short(item.title)}》`, target: item.id, kind: 'item' }
   },
   update_item(state, op) {
     const item = findById(state.items, op.id)
-    const fields = pick(ITEM_FIELDS, op)
+    const { status, scheduledAt, ...fields } = pick(ITEM_FIELDS, op)
     Object.assign(item, fields)
-    const names = Object.keys(fields).filter(key => key !== 'pos')
+    if (scheduledAt !== undefined) applySchedule(item, scheduledAt)
+    if (status !== undefined) applyStatus(item, status)
+    const names = [...Object.keys(fields), ...(status !== undefined ? ['status'] : []), ...(scheduledAt !== undefined ? ['scheduledAt'] : [])].filter(key => key !== 'pos')
     return names.length ? { text: `更新《${short(item.title)}》`, target: item.id, kind: 'item' } : null
   },
   delete_item(state, op) {
@@ -127,22 +148,16 @@ const handlers = {
     const item = findById(state.items, op.id)
     const when = coerce('date', op.scheduledAt)
     if (when === undefined) throw new Error('排期时间无效')
-    item.scheduledAt = when
     const platform = coerce('platform', op.platform)
     if (platform !== undefined) item.platform = platform
-    // 排上日历就是待发布；取消排期退回草稿。已发布的不动
-    if (item.status !== 'published') {
-      if (when) item.status = item.production?.status === 'done' || ['draft', 'ready'].includes(item.status) ? 'ready' : 'outline'
-      else if (item.status === 'ready') item.status = 'draft'
-    }
+    applySchedule(item, when)
     return { text: when ? `把《${short(item.title)}》排到 ${fmtWhen(when)}${item.platform ? ` · ${item.platform}` : ''}` : `取消《${short(item.title)}》的排期`, target: item.id, kind: 'item' }
   },
   set_status(state, op) {
     const item = findById(state.items, op.id)
     const status = coerce('status', op.status)
     if (!status) throw new Error('状态无效')
-    item.status = status
-    if (status === 'published' && !item.publishedAt) item.publishedAt = new Date().toISOString()
+    applyStatus(item, status)
     return { text: `《${short(item.title)}》状态改为「${STATUS_LABEL[status]}」`, target: item.id, kind: 'item' }
   },
   save_draft(state, op, now) {
@@ -269,6 +284,10 @@ const handlers = {
     state.skills = state.skills.filter(row => !row.sample)
     state.styles = (state.styles ?? []).filter(row => !row.sample)
     if (!state.styles.some(row => row.id === state.activeStyleId)) state.activeStyleId = null
+    // 自己的数据可能挂在示例内容下面：父条目没了就断开，指标没了对应内容就删掉
+    const ids = new Set(state.items.map(row => row.id))
+    for (const row of state.items) if (row.parentId && !ids.has(row.parentId)) row.parentId = null
+    state.metrics = state.metrics.filter(row => !row.itemId || ids.has(row.itemId))
     state.sampleCleared = true
     return { text: '已清空全部示例数据' }
   },

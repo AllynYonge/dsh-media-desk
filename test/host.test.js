@@ -815,3 +815,71 @@ test('生图被限流（429）时会等一会儿再试，最多三次', async ()
     await rm(dir, { recursive: true })
   }
 })
+
+test('撤销只撤回那一步：之后生成的成稿和画好的图不受影响', async () => {
+  const { Store, revertChange } = await import('../src/store.js')
+  const dir = await mkdtemp(join(tmpdir(), 'md-undo-'))
+  try {
+    const store = new Store(dir)
+    const state = await store.read()
+    const id = state.items[0].id
+    // 1. 切换风格（可撤销）
+    await store.mutate('切换风格', (draft) => { draft.activeStyleId = 'preset_travel' })
+    // 2. 之后生成了成稿（不可撤销的后台写入）
+    await store.mutate('成稿', (draft) => { draft.items[0].production = { status: 'done', title: '原标题', shots: [{ no: 1, prompt: 'a', status: 'done', src: 'old.png' }] } }, { undoable: false })
+    // 3. 对话改了标题和第 1 镜的画面（可撤销）
+    await store.mutate('对话', (draft) => { const p = draft.items[0].production; p.title = '新标题'; p.shots[0].prompt = 'b'; p.shots[0].status = 'running' })
+    // 4. 第 1 镜重画完成（不可撤销）
+    await store.mutate('成稿', (draft) => { const shot = draft.items[0].production.shots[0]; shot.status = 'done'; shot.src = 'new.png' }, { undoable: false })
+
+    assert.equal(await store.undoLast(), '对话')
+    let p = (await store.read()).items.find(row => row.id === id).production
+    assert.equal(p.title, '原标题')
+    assert.equal(p.shots[0].prompt, 'a')
+    assert.equal(p.shots[0].src, 'new.png')
+    assert.equal(p.shots[0].status, 'done')
+
+    assert.equal(await store.undoLast(), '切换风格')
+    const after = await store.read()
+    assert.equal(after.activeStyleId, null)
+    p = after.items.find(row => row.id === id).production
+    assert.equal(p.status, 'done', '撤销切换风格不能抹掉成稿')
+
+    // 什么都没改的操作不进撤销栈
+    await store.mutate('空操作', () => {})
+    assert.equal(store.undo.length, 0)
+
+    // 新增和删除也能撤回，删掉的行回到原位
+    const removed = after.items[1]
+    await store.mutate('删除', (draft) => { draft.items.splice(1, 1) })
+    await store.mutate('新增', (draft) => { draft.items.unshift({ id: 'new_1', title: '新灵感' }) })
+    await store.undoLast()
+    await store.undoLast()
+    const back = await store.read()
+    assert.equal(back.items.some(row => row.id === 'new_1'), false)
+    assert.equal(back.items[1].id, removed.id)
+
+    assert.deepEqual(revertChange({ a: 1 }, { a: 2 }, { a: 3 }), { a: 3 }, '之后又被改过就保留现在的值')
+  } finally {
+    await rm(dir, { recursive: true })
+  }
+})
+
+test('状态规则：发布时间、排期与取消排期、清空示例不留悬空数据', () => {
+  const state = seed()
+  const [r] = applyOps(state, [{ op: 'add_item', title: '只有灵感' }]).receipts
+  const item = state.items.find(row => row.id === r.target)
+  applyOps(state, [{ op: 'schedule_item', id: item.id, scheduledAt: '2026-12-01T12:00:00Z' }])
+  assert.equal(item.status, 'outline')
+  applyOps(state, [{ op: 'schedule_item', id: item.id, scheduledAt: null }])
+  assert.equal(item.status, 'idea', '没成稿的灵感取消排期回到灵感')
+  applyOps(state, [{ op: 'update_item', id: item.id, status: 'published' }])
+  assert.ok(item.publishedAt, '用 update_item 发布也要记发布时间')
+  applyOps(state, [{ op: 'set_status', id: item.id, status: 'draft' }])
+  assert.equal(item.publishedAt, undefined, '离开已发布要清掉发布时间')
+  const sample = state.items.find(row => row.sample)
+  const [child] = applyOps(state, [{ op: 'add_item', title: '挂在示例下面', parentId: sample.id }, { op: 'add_metric', itemId: sample.id, platform: '抖音', date: '2026-11-01T12:00:00Z', views: 10 }]).receipts
+  applyOps(state, [{ op: 'clear_samples' }])
+  assert.equal(state.items.find(row => row.id === child.target).parentId, null)
+  assert.equal(state.metrics.length, 0)
+})

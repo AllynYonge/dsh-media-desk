@@ -8,6 +8,8 @@ import { newId } from './ops.js'
 import { imageReady } from './settings.js'
 
 const CONCURRENCY = 3
+// 模型卡住不出字时，到点改用草稿，不让进度条一直转
+const TEXT_TIMEOUT_MS = 240_000
 const RETRY_WAIT_MS = [6000, 14000]
 
 function splitTitle(markdown, fallback) {
@@ -203,7 +205,7 @@ export class Producer {
       let plan
       try {
         const prompts = planPrompts(snapshot, item, settings)
-        const { text } = await this.callText({ ...prompts, maxTokens: 3000, light: true, signal, onText: (delta) => { job.planText += delta } })
+        const { text } = await this.callText({ ...prompts, maxTokens: 3000, light: true, signal: AbortSignal.any([signal, AbortSignal.timeout(TEXT_TIMEOUT_MS)]), onText: (delta) => { job.planText += delta } })
         plan = normalizePlan(extractJson(text), settings, item.title)
       } catch (err) {
         if (signal.aborted) throw err
@@ -236,7 +238,7 @@ export class Producer {
         let markdown = ''
         try {
           const prompts = articlePrompts(snapshot, item, settings.voice, plan)
-          const result = await this.callText({ ...prompts, maxTokens: 6000, signal, onText: (delta) => { job.text += delta } })
+          const result = await this.callText({ ...prompts, maxTokens: 6000, signal: AbortSignal.any([signal, AbortSignal.timeout(TEXT_TIMEOUT_MS)]), onText: (delta) => { job.text += delta } })
           markdown = result.text
           engine = result.model
           if (!markdown.trim()) throw new Error('模型返回了空内容')
@@ -277,7 +279,7 @@ export class Producer {
         target.production.status = 'done'
         target.production.stage = 'done'
         target.production.finishedAt = new Date().toISOString()
-        if (['idea', 'outline'].includes(target.status)) target.status = 'draft'
+        if (['idea', 'outline'].includes(target.status)) target.status = target.scheduledAt ? 'ready' : 'draft'
         return draft
       }, { undoable: false })
     } catch (err) {
@@ -356,6 +358,12 @@ export class Producer {
   }
 
   /** Host 重启后，没人在跑的「进行中」不能一直转圈。 */
+  /** Host 重启后，把上次没做完的成稿都标成中断，卡片不会一直显示「正在成稿」。 */
+  async settleAll() {
+    const state = await this.store.read()
+    for (const item of state.items) if (item.production?.status === 'running') await this.settle(item.id)
+  }
+
   async settle(id) {
     const state = await this.store.read()
     const production = state.items.find(row => row.id === id)?.production
