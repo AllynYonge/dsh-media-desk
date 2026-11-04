@@ -12,8 +12,7 @@
 <p align="center">Built by <a href="https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3"><b>蜗牛的科技笔记</b></a>, a tech creator on Xiaohongshu, as the desk for their own daily publishing.</p>
 
 <p align="center">
-  <a href="https://github.com/woniuniuniu/dsh-media-desk/releases/latest">Download</a> ·
-  <a href="#three-steps">Three steps</a> ·
+  <a href="#three-steps">Install</a> ·
   <a href="#what-it-costs">What it costs</a> ·
   <a href="#questions">Questions</a> ·
   <a href="README.md">简体中文</a>
@@ -147,17 +146,19 @@ Five pages: **Ideas · Content · Schedule · Insights · Styles**. The interfac
 
 Requires DeepSeek Harness `0.2.1-rc.5` or later in the `0.2.x` line.
 
-**1. Download.** Get `dsh-media-desk-*.tgz` from [Releases](https://github.com/woniuniuniu/dsh-media-desk/releases/latest) and keep it somewhere permanent.
+**1. Install.** In the DeepSeek Harness desktop app, go to Plugins → Add plugin, enter the package name `dsh-media-desk` and install.
 
-**2. Install.** Run one command from that folder. Quit the desktop app completely (⌘Q) before installing and reopen it after; for the web version, restart `dsh web`. If `dsh` is not on your terminal yet, choose "Manage dsh command" in the desktop app's menu.
+Or use the command line. Quit the desktop app completely (⌘Q) before installing and reopen it after; for the web version, restart `dsh web`. If `dsh` is not on your terminal yet, choose "Manage dsh command" in the desktop app's menu.
 
 ```bash
-dsh plugin --profile desktop add "file:$PWD/dsh-media-desk-2.5.3.tgz"
+dsh plugin --profile desktop add dsh-media-desk
 ```
 
 ```bash
-dsh plugin --profile web add "file:$PWD/dsh-media-desk-2.5.3.tgz"
+dsh plugin --profile web add dsh-media-desk
 ```
+
+**2. Update.** When a new version is out, update it from the Plugins page or run the command again. For an offline install, download `dsh-media-desk-*.tgz` from [Releases](https://github.com/woniuniuniu/dsh-media-desk/releases/latest) and use `"file:$PWD/dsh-media-desk-VERSION.tgz"` instead of the package name.
 
 **3. Open.** "自媒体工作台" appears in the sidebar. The first launch shows sample data so you can see every page; click "示例数据 · 清空" (clear samples) in the top right to start with your own.
 

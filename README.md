@@ -12,8 +12,7 @@
 <p align="center">由小红书科技博主 <a href="https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3"><b>蜗牛的科技笔记</b></a> 开发，一个每天要发内容的人，给自己做的工作台。</p>
 
 <p align="center">
-  <a href="https://github.com/woniuniuniu/dsh-media-desk/releases/latest">下载安装</a> ·
-  <a href="#三步上手">三步上手</a> ·
+  <a href="#三步上手">安装</a> ·
   <a href="#要花钱吗">要花钱吗</a> ·
   <a href="#问答">问答</a> ·
   <a href="README.en.md">English</a>
@@ -146,17 +145,19 @@
 
 要求 DeepSeek Harness `0.2.1-rc.5` 及以上的 `0.2.x`。
 
-**1. 下载。** 到 [Releases](https://github.com/woniuniuniu/dsh-media-desk/releases/latest) 下载 `dsh-media-desk-*.tgz`，放到一个不会被删的固定位置。
+**1. 安装。** 打开 DeepSeek Harness 桌面版，进「插件」→「添加插件」，输入包名 `dsh-media-desk`，点安装。
 
-**2. 安装。** 在那个文件夹里执行一条命令。桌面版要先完全退出（⌘Q）再装，装好重新打开；网页版装好后重启 `dsh web`。终端里没有 `dsh` 的话，先在桌面版菜单里选「管理 dsh 命令」。
+也可以用命令行。桌面版要先完全退出（⌘Q）再装，装好重新打开；网页版装好后重启 `dsh web`。终端里没有 `dsh` 的话，先在桌面版菜单里选「管理 dsh 命令」。
 
 ```bash
-dsh plugin --profile desktop add "file:$PWD/dsh-media-desk-2.5.3.tgz"
+dsh plugin --profile desktop add dsh-media-desk
 ```
 
 ```bash
-dsh plugin --profile web add "file:$PWD/dsh-media-desk-2.5.3.tgz"
+dsh plugin --profile web add dsh-media-desk
 ```
+
+**2. 更新。** 有新版本时，在插件页点更新，或者重新执行一次上面的命令。想离线安装的话，也可以到 [Releases](https://github.com/woniuniuniu/dsh-media-desk/releases/latest) 下载 `dsh-media-desk-*.tgz`，把包名换成 `"file:$PWD/dsh-media-desk-版本号.tgz"`。
 
 **3. 打开。** 侧栏会出现「自媒体工作台」。第一次看到的都是示例数据，方便你先看看每个页面长什么样；点右上角「示例数据 · 清空」，换成自己的。
 
