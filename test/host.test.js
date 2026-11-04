@@ -700,7 +700,7 @@ test('Monid：花费累加，资料失败不影响内容，预算拦截和没装
   assert.deepEqual(await monidStatus(async () => ({ balance: { value: 1.5, currency: 'USD' } })), { state: 'ready', balance: { value: 1.5, currency: 'USD' } })
 })
 
-test('Monid：重复抓取只更新数字，示例数据退出统计，没有播放量时按互动排序', async () => {
+test('Monid：重复导入只更新数字，示例数据退出统计，没有播放量时按互动排序', async () => {
   const { importPosts, normalizePosts, postsToMaterial } = await import('../src/monid.js')
   const { computeInsights } = await import('../src/learn.js')
   const posts = normalizePosts('小红书', xhsOutput)

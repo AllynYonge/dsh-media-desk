@@ -212,15 +212,15 @@ async function styleFromMaterial(ctx, store, { material, name, source, sourceUrl
   })
 }
 
-/** 抓取用户自己的账号。钱花在 Monid 上，所以先把内容存好，提炼失败也不会白花。 */
+/** 导入用户自己的账号。钱花在 Monid 上，所以先把内容存好，提炼失败也不会白花。 */
 async function importAccountRoute(ctx, store, desk, body) {
-  if (desk.importing) throw Object.assign(new Error('上一个账号还在抓取，等它结束再试'), { status: 409 })
+  if (desk.importing) throw Object.assign(new Error('上一个账号还在导入，等它结束再试'), { status: 409 })
   desk.importing = true
   try {
     const account = await resolveAccount(body.text)
     const { posts, profile, cost } = await fetchAccount(account, desk.monid)
     const covers = await saveCovers(posts, account.platform, await store.read(), store.filesDir)
-    const added = await store.mutate(`抓取${account.platform}账号`, draft => importPosts(draft, { account, profile, posts, covers }).added)
+    const added = await store.mutate(`导入${account.platform}账号`, draft => importPosts(draft, { account, profile, posts, covers }).added)
     const nickname = profile.nickname || account.platform
     let styleError = null
     const material = postsToMaterial(posts)

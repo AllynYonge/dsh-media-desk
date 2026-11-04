@@ -29,7 +29,7 @@
 
 ## What it is
 
-A page in the DeepSeek Harness sidebar. It opens on a wall of ideas, one line each. Open any of them and one click produces a spoken script, a title, a video cover, figures and a line-art storyboard; chat on the left and the right side changes. Drag the finished piece onto the calendar, publish, come back for the numbers.
+A page in the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) sidebar. It opens on a wall of ideas, one line each. Open any of them and one click produces a spoken script, a title, a video cover, figures and a line-art storyboard; chat on the left and the right side changes. Drag the finished piece onto the calendar, publish, come back for the numbers.
 
 Five pages: **Ideas · Content · Schedule · Insights · Styles**. The interface is in Chinese.
 
@@ -175,7 +175,7 @@ The plugin is free and ships with no credentials. Wherever a model is involved, 
 | --- | --- | --- |
 | **Script** | The model you already configured in DeepSeek Harness | Only a structural draft |
 | **Cover, figures, storyboard** | Your own image API key, entered in the plugin settings | Script and storyboard text still work; the cover becomes typographic |
-| **Account import** (optional) | The third-party service Monid, billed per call, a few cents per account | Enter numbers by hand, or paste posts to distill a style |
+| **Account import** (optional) | The third-party service Monid, billed per call: about $0.02 per Xiaohongshu account, under a cent for Douyin and Bilibili | Enter numbers by hand, or paste posts to distill a style |
 
 Images work with any service compatible with the OpenAI images API (`POST {endpoint}/images/generations`). Settings come pre-filled with OpenAI, xAI, Volcengine Ark, Zhipu and SiliconFlow, or use a custom endpoint. Click "试画一张" (draw one) to test. One production makes 9 images by default, adjustable. The key lives only in the local `settings.json` (mode 600), never in content data, never sent to the text model.
 
@@ -183,7 +183,7 @@ Images work with any service compatible with the OpenAI images API (`POST {endpo
 
 ## Importing your own account
 
-In Styles or Insights, click import and paste your own Xiaohongshu, Douyin or Bilibili profile URL. Your latest 20 public posts and their engagement go into content and insights, and your style is distilled from them. Importing again only updates the numbers.
+In Styles or Insights, click "导入账号" (import account) and paste your own Xiaohongshu, Douyin or Bilibili profile URL. Your latest 20 public posts and their engagement go into content and insights, and your style is distilled from them. Importing again only updates the numbers.
 
 First time, connect [Monid](https://monid.ai) in three steps:
 
@@ -243,6 +243,11 @@ No, it is a community plugin. Scripts are written by whichever model you configu
 ## Author
 
 I am [蜗牛的科技笔记](https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3) (Snail's Tech Notes), a tech creator on Xiaohongshu, ID `1097519508`. This desk is what I use every day: ideas I could not hold on to, drafts that took too long, posts whose results I never checked. It is built around those three problems. Issues and ideas are welcome on [GitHub](https://github.com/woniuniuniu/dsh-media-desk/issues).
+
+## Thanks
+
+- The [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) team, for an open plugin system this desk could be built on.
+- [dsh-Go](https://github.com/ccch1mneyyy/dsh-Go), whose README layout inspired this one.
 
 ## Development
 

@@ -156,7 +156,7 @@ export function InsightsView() {
   const heroPic = bestItem && posterOf(displayItem(bestItem))
   const actions = (
     <div className="md-hero-actions">
-      <button type="button" className="md-pill is-primary" onClick={() => setConnecting(true)}><Icon name="user" size={14} />抓取账号数据</button>
+      <button type="button" className="md-pill is-primary" onClick={() => setConnecting(true)}><Icon name="user" size={14} />导入账号数据</button>
       <button type="button" className="md-pill" onClick={() => addMetric(items)}><Icon name="plus" size={14} />录入数据</button>
       <button type="button" className="md-pill" onClick={importCsv}><Icon name="upload" size={14} />粘贴 CSV</button>
     </div>

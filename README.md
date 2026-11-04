@@ -29,7 +29,7 @@
 
 ## 它是什么
 
-装在 DeepSeek Harness 侧栏里的一个页面。打开是一面灵感墙，一句话记一个灵感；点开任何一条，一键生成口播脚本、标题、视频封面、配图和黑白线稿分镜；左边聊一句，右边就改。做好的稿子拖到日历上排期，发布之后回来看数据。
+装在 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 侧栏里的一个页面。打开是一面灵感墙，一句话记一个灵感；点开任何一条，一键生成口播脚本、标题、视频封面、配图和黑白线稿分镜；左边聊一句，右边就改。做好的稿子拖到日历上排期，发布之后回来看数据。
 
 五个页面：**灵感 · 内容 · 排期 · 复盘 · 风格**。
 
@@ -105,7 +105,7 @@
 <tr>
 <td valign="top" width="38%">
 <p><b>数据进来，规则出去。</b></p>
-<p>手动录入、粘贴 CSV，或者抓取你自己的账号。趋势、平台分布、表现最好的内容，一眼看完。</p>
+<p>手动录入、粘贴 CSV，或者导入你自己的账号。趋势、平台分布、表现最好的内容，一眼看完。</p>
 <p>从数据里提炼出来的建议，点一下就写进写作规则，以后每篇都遵守。规则还能导出成 DeepSeek Harness 的 Skill。</p>
 </td>
 <td>
@@ -133,7 +133,7 @@
 <p><b>按谁的风格写，你定。</b></p>
 <p>科技数码、旅行探店、Vlog 生活、观点认知、干货教程、种草测评、情感故事、热点资讯，8 个板块 15 种博主预设，选一种就能开写。</p>
 <p><b>也可以是你自己的。</b></p>
-<p>抓自己的账号，或者贴几篇写过的稿子，提炼成专属风格卡，随时改。</p>
+<p>导入自己的账号，或者贴几篇写过的稿子，提炼成专属风格卡，随时改。</p>
 <p>内容页把所有稿子按灵感、成稿、待发布、已发布排好。</p>
 </td>
 </tr>
@@ -173,15 +173,15 @@ dsh plugin --profile web add dsh-media-desk
 | --- | --- | --- |
 | **写脚本** | DeepSeek Harness 里你已经配好的模型 | 只能出结构草稿 |
 | **画封面、配图、分镜** | 你自己的生图 API Key，在插件设置里填 | 脚本和分镜文案照常，封面变成纯文字版 |
-| **抓取自己的账号**（可选） | 第三方服务 Monid，按次计费，一个账号几分钱 | 手动录数据，或贴内容提炼风格 |
+| **导入自己的账号**（可选） | 第三方服务 Monid，按次计费：小红书一个账号约 0.02 美元（一毛多），抖音、B 站不到 1 美分 | 手动录数据，或贴内容提炼风格 |
 
 生图支持任何兼容 OpenAI 图片接口（`POST {接口地址}/images/generations`）的服务，设置里预填了 OpenAI、xAI、火山方舟、智谱、硅基流动，也可以自定义。填好点「试画一张」就知道通没通。一次成稿默认 9 张图，数量可调。密钥只存在本机的 `settings.json`，权限 600，不进内容数据，也不会发给文字模型。
 
 <br>
 
-## 抓取自己的账号
+## 导入自己的账号
 
-「风格」或「复盘」页点抓取，贴上自己的小红书、抖音或 B 站主页链接。读最近 20 条公开内容和互动数据，进内容和复盘，顺便提炼成你的风格。再抓一次只更新数字。
+「风格」或「复盘」页点「导入账号」，贴上自己的小红书、抖音或 B 站主页链接。读最近 20 条公开内容和互动数据，进内容和复盘，顺便提炼成你的风格。再导入一次只更新数字。
 
 第一次用要接 [Monid](https://monid.ai)，三步：
 
@@ -196,7 +196,7 @@ dsh plugin --profile web add dsh-media-desk
 ## 问答
 
 <details>
-<summary><b>只抓自己的账号吗？</b></summary>
+<summary><b>只能导入自己的账号吗？</b></summary>
 <br>
 
 是。链接会发给 Monid 和它的数据服务商，请确认符合你和平台的条款。只能读到公开内容：小红书和抖音读不到播放量，复盘会改按互动算；小红书正文约 100 字，抖音是文案，B 站大多只有标题，提炼出的风格可以再手动改。公众号、视频号、X 暂不支持，贴内容或公开链接就行。
@@ -241,6 +241,11 @@ dsh plugin --profile web add dsh-media-desk
 
 我是 [蜗牛的科技笔记](https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3)，在小红书做科技内容，小红书号 `1097519508`。这个工作台是我自己每天用的：灵感记不住、成稿太慢、发完不知道效果，这三件事我都踩过，所以做成了这样。用得顺手或者不顺手，欢迎提 [Issue](https://github.com/woniuniuniu/dsh-media-desk/issues)，也欢迎来小红书找我聊。
 
+## 致谢
+
+- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 团队，做了这套开放的插件系统，这个工作台才装得进去。
+- [dsh-Go](https://github.com/ccch1mneyyy/dsh-Go)，这份 README 的图文排版参考了它。
+
 ## 开发
 
 ```bash
@@ -251,19 +256,19 @@ node scripts/mock-llm.mjs      # 模拟文字和生图模型，不花额度
 npm pack                       # 打出可安装的 tgz
 ```
 
-`scripts/mock-monid.mjs` 是假的 `monid` 命令，内容全是编的，用来不花钱测抓取流程：包成名为 `monid` 的可执行文件放到 `PATH` 最前面。
+`scripts/mock-monid.mjs` 是假的 `monid` 命令，内容全是编的，用来不花钱测导入流程：包成名为 `monid` 的可执行文件放到 `PATH` 最前面。
 
 | 目录 | 内容 |
 | --- | --- |
 | `client/` | 界面：灵感墙、成稿、对话、内容、排期、复盘、风格、设置 |
-| `src/` | Host 接口、成稿流水线、提示词、生图、风格提炼、Monid 抓取、本地存储 |
+| `src/` | Host 接口、成稿流水线、提示词、生图、风格提炼、Monid 导入、本地存储 |
 | `scripts/` | 打包、沙盒、模拟模型、示例素材生成 |
 | `assets/` | 示例图片和视频，全部由 `scripts/gen-assets.py` 程序绘制 |
 | `docs/assets/` | 本页的展示图 |
 
 改了 `src/` 要重启 DeepSeek Harness。
 
-**安全：** 每个接口都经过 Host 鉴权；模型输出和抓到的内容只取固定字段、限制长度，操作走白名单；粘贴的链接不能访问本机和内网；调用 `monid` 不经过 shell，账号 ID 只接受固定格式。漏洞请走 [Security Advisories](https://github.com/woniuniuniu/dsh-media-desk/security/advisories/new) 私下报告。
+**安全：** 每个接口都经过 Host 鉴权；模型输出和读到的外部内容只取固定字段、限制长度，操作走白名单；粘贴的链接不能访问本机和内网；调用 `monid` 不经过 shell，账号 ID 只接受固定格式。漏洞请走 [Security Advisories](https://github.com/woniuniuniu/dsh-media-desk/security/advisories/new) 私下报告。
 
 <br>
 

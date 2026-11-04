@@ -258,7 +258,7 @@ async function runEndpoint(run, endpoint, query) {
     const authFailed = data.error.code === 'AUTH_FAILED'
     throw Object.assign(new Error(authFailed ? 'Monid 还没配置密钥' : `Monid：${text(data.error.message, 160)}`), { status: authFailed ? 400 : 502 })
   }
-  if (data.status === 'BLOCKED') throw Object.assign(new Error('这次抓取被 Monid 后台的预算限制拦下了，可以到 app.monid.ai 调整后再试'), { status: 402 })
+  if (data.status === 'BLOCKED') throw Object.assign(new Error('这次导入被 Monid 后台的预算限制拦下了，可以到 app.monid.ai 调整后再试'), { status: 402 })
   if (data.status !== 'COMPLETED') throw Object.assign(new Error(`Monid 这次没跑完（${text(data.status, 20) || '未知状态'}）`), { status: 502 })
   return { output: data.output, cost: Number.isFinite(data.cost?.value) ? data.cost.value : 0 }
 }

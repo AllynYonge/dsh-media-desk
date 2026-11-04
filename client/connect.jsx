@@ -7,7 +7,7 @@ const SETUP_LINE = 'set up https://monid.ai/SKILL.md'
 const KEY_COMMAND = 'monid keys add -k 你的密钥 -l main'
 const KEYS_URL = 'https://app.monid.ai/access/api-keys'
 
-/** 花费是按 Monid 目录价估的，实际花费以抓取结果为准。 */
+/** 花费是按 Monid 目录价估的，实际花费以导入结果为准。 */
 function detect(text) {
   const value = String(text ?? '')
   if (/xiaohongshu\.com|xhslink\.com/i.test(value)) return { platform: '小红书', estimate: '$0.02' }
@@ -94,7 +94,7 @@ function AccountForm({ status, onClose }) {
         <span style={{ flex: 1 }} />
         <button type="button" className="md-btn" onClick={onClose}>取消</button>
         <button type="submit" className="md-btn is-primary" disabled={busy}>
-          {busy ? <span className="md-shimmer">正在抓取和提炼…</span> : found ? `抓取${found.platform}（约 ${found.estimate}）` : '抓取'}
+          {busy ? <span className="md-shimmer">正在导入和提炼…</span> : found ? `导入${found.platform}（约 ${found.estimate}）` : '导入'}
         </button>
       </div>
     </form>
@@ -122,7 +122,7 @@ export function ConnectDialog({ onClose }) {
   }, [])
   const ready = status?.state === 'ready'
   return (
-    <Dialog title={ready ? '抓取我的账号' : '连接 Monid'} onClose={onClose} width={500}>
+    <Dialog title={ready ? '导入我的账号' : '连接 Monid'} onClose={onClose} width={500}>
       {!status ? <p className="md-setup-lead md-shimmer">正在检查 Monid…</p> : null}
       {status && !ready ? <SetupGuide status={status} checking={checking} onCheck={check} /> : null}
       {ready ? <AccountForm status={status} onClose={onClose} /> : null}

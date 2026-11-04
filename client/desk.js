@@ -261,7 +261,7 @@ export async function refreshAccount(payload) {
   try {
     const data = await request('account/refresh', payload)
     setDesk({ state: data.state, canUndo: true })
-    if (data.fetchError) toast(`抓取失败：${data.fetchError}`, { error: true })
+    if (data.fetchError) toast(`读取主页失败：${data.fetchError}`, { error: true })
     else toast('已更新账号档案')
     return data
   } catch (err) {
