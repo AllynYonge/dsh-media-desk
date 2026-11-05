@@ -80,9 +80,10 @@ test('localizeSamples：中英来回切换只换示例文字，用户内容和�
   assert.ok(!CJK.test(item('seed_1').title))
   assert.equal(item('seed_2').status, 'published')
   assert.ok(item('seed_2').publishedAt)
-  assert.deepEqual(item('seed_2').production, { status: 'done', title: '成稿标题', article: '正文' })
+  // 中文成稿和改过的标题先收起来，英文下显示英文示例
+  assert.equal(item('seed_2').production, undefined)
   assert.ok(!CJK.test(item('seed_2').title))
-  assert.equal(item('seed_3').title, '我改过的标题')
+  assert.ok(!CJK.test(item('seed_3').title))
   assert.ok(!CJK.test(item('seed_3').body))
   assert.deepEqual(state.metrics, metrics)
   const news = state.styles.find(row => row.id === 'preset_news')
@@ -100,7 +101,17 @@ test('localizeSamples：中英来回切换只换示例文字，用户内容和�
 
   // 切回中文，回到切换前的样子
   localizeSamples(state, 'zh')
-  assert.deepEqual(state, { ...before, sampleLang: 'zh' })
+  const withoutStash = clone(state)
+  for (const row of withoutStash.items) delete row.otherLang
+  assert.deepEqual(withoutStash, { ...before, sampleLang: 'zh' })
+  // 英文那份也留着：在英文下改过的内容切回英文还在
+  localizeSamples(state, 'en')
+  item('seed_4').title = 'My English edit'
+  localizeSamples(state, 'zh')
+  assert.equal(item('seed_4').title, original.items[3].title)
+  localizeSamples(state, 'en')
+  assert.equal(item('seed_4').title, 'My English edit')
+  localizeSamples(state, 'zh')
   assert.equal(item('seed_1').title, original.items[0].title)
 })
 
@@ -173,7 +184,7 @@ test('英文本地规则：常见说法和中文一样能用，回复是英文',
     assert.equal(localIntent(state, 'rename it to "A better title"', { now: NOW, focusId: 'seed_2' }).ops[0].id, 'seed_2')
     assert.match(localIntent(state, "what's on my schedule", { now: NOW }).reply, /^Coming up:/)
     const [receipt] = applyOps(state, [{ op: 'schedule_item', id: 'seed_2', scheduledAt: '2026-11-03T12:00:00Z', platform: '小红书' }]).receipts
-    assert.match(receipt.text, /^Scheduled ".+" for Nov 3 \d\d:00 · Xiaohongshu$/)
+    assert.match(receipt.text, /^Scheduled ".+" for Nov 3 \d\d:00 · RedNote$/)
   })
   const at = text => { const d = parseWhen(text, NOW); return d && [d.getMonth() + 1, d.getDate(), d.getHours(), d.getMinutes()] }
   assert.deepEqual(at('Nov 3 20:00'), [11, 3, 20, 0])
@@ -185,7 +196,7 @@ test('英文本地规则：常见说法和中文一样能用，回复是英文',
 test('英文成稿：回执、默认景别和封面大字兜底都是英文，长度上限不变', () => {
   withLang('en', () => {
     const plan = normalizePlan({ shots: [{ prompt: 'x' }] }, { imageCount: 0, shotCount: 1 }, 'Why your first AI side project never makes a dollar')
-    assert.equal(plan.shots[0].shot, 'Medium')
+    assert.equal(plan.shots[0].shot, 'Medium shot')
     assert.equal(plan.coverText, 'Why your first AI side')
     assert.ok(plan.coverText.length <= 24)
     const production = { title: 't', coverText: 'c', article: 'abc', cover: { prompt: 'p' }, images: [], shots: [{ shot: 'Wide', prompt: 'p' }] }
@@ -227,3 +238,19 @@ test('GET state 按请求头的语言换示例文字', async () => {
     await rm(dir, { recursive: true, force: true })
   }
 })
+
+test('旧的英文数据：示例上残留的中文成稿收进中文那份，切回中文还在', () => {
+  const state = buildSeed(NOW, 'en')
+  const row = state.items.find(item => item.id === 'seed_1')
+  delete row.otherLang
+  row.production = { status: 'done', title: '中文成稿' }
+  const mine = { id: 'it_mine', title: '我的中文灵感', drafts: {} }
+  state.items.push(mine)
+  migrateState(state)
+  assert.equal(row.production, undefined)
+  assert.ok(!CJK.test(row.title))
+  assert.equal(mine.title, '我的中文灵感')
+  localizeSamples(state, 'zh')
+  assert.equal(row.production.title, '中文成稿')
+})
+

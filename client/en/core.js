@@ -10,18 +10,18 @@ export const CORE = {
   '复盘': 'Insights',
   '风格（导航）': 'Styles',
   '风格': 'Style',
-  '撤销上一步': 'Undo last step',
+  '撤销上一步': 'Undo',
   '设置': 'Settings',
   '助手': 'Assistant',
-  '工作台加载失败：{error}': 'Couldn’t load the desk: {error}',
+  '工作台加载失败：{error}': 'Couldn’t load Media Desk: {error}',
   '重试': 'Retry',
-  '正在铺开灵感…': 'Laying out ideas…',
+  '正在铺开灵感…': 'Loading your ideas…',
 
   // 示例数据
-  '现在看到的内容都是示例，可以一键清空': 'Everything here is sample data. Clear it in one click.',
+  '现在看到的内容都是示例，可以一键清空': 'You’re looking at sample data. Clear it whenever you’re ready.',
   '清空示例数据': 'Clear sample data',
   '清空': 'Clear',
-  '示例数据 · 清空': 'Clear samples',
+  '示例数据 · 清空': 'Clear sample data',
 
   // 记灵感
   '记下一个灵感': 'New idea',
@@ -30,13 +30,13 @@ export const CORE = {
   '金句': 'Quote',
   '链接': 'Link',
   '图片/视频': 'Image/video',
-  '会自动读取页面的标题、简介和封面。': 'The page title, summary and cover are filled in automatically.',
+  '会自动读取页面的标题、简介和封面。': 'We’ll pull in the page title, summary and cover.',
   '选择图片或视频': 'Choose images or videos',
-  '也可以直接把文件拖到灵感墙上': 'Or drop files straight onto the idea wall',
+  '也可以直接把文件拖到灵感墙上': 'Or drag files onto the idea wall',
   '这句话': 'Quote',
   '想法': 'Idea',
-  '好的选题不是想出来的……': 'Good topics aren’t thought up…',
-  '想到什么就写什么，之后再让助手补全。': 'Write whatever comes to mind. The assistant can fill in the rest later.',
+  '好的选题不是想出来的……': 'The best topics aren’t invented. They’re noticed…',
+  '想到什么就写什么，之后再让助手补全。': 'Write whatever comes to mind. The assistant can fill in the rest.',
   '放到灵感墙': 'Add to wall',
 
   // 通用

@@ -34,10 +34,10 @@ const RAW = [
 
 /** RAW 的英文文字，顺序和 RAW 一一对应：[标题, 补充, 标签, 来源]。 */
 const RAW_EN = [
-  ['Why your first AI side project never makes a dollar', 'It isn\'t the prompts. It\'s not knowing what the first sellable thing looks like. Break that step into three pictures.', ['AI', 'Monetization'], 'Thought on a walk'],
+  ['Why your first AI side project never makes a dollar', 'It\'s not the prompts. It\'s not knowing what your first sellable thing should look like. Break that step down in three images.', ['AI', 'Monetization'], 'Thought on a walk'],
   ['Good topics aren\'t dreamed up. They\'re the things you keep complaining about.', 'Log a week of complaints. Anything that comes up three times is a topic.', ['Method'], 'Reading notes'],
   ['Agents vs. chatbots, explained in 30 seconds', 'One waits for you to ask, the other does the work. Open on a task map that flows like an aurora.', ['AI', 'Explainer'], 'Vertical script'],
-  ['A pricing map for indie developers', 'Forty indie products\' pricing pages laid out on one topographic map, so the highs and lows jump out.', ['Indie hacking', 'Pricing'], 'example.com'],
+  ['A pricing map for indie developers', 'Forty indie pricing pages on one topographic map, so the peaks and valleys jump out.', ['Indie hacking', 'Pricing'], 'example.com'],
   ['Old facades: a design system rewritten by time', 'Every window is a patch from whoever came later. A perfect way to talk about tech debt.', ['Design', 'Metaphor'], 'Street photo'],
   ['A 10-minute checklist before you hit publish', 'Does the title have a verb? Are the first three seconds plain English? Is the cover readable on a phone? Does the ending ask for just one thing?', ['Workflow'], 'My own checklist'],
   ['Slow writing: growing one thought into a long-form post', 'A week of not chasing trends: 200 words a day, stitched into one piece on day seven.', ['Writing'], 'Cover experiment'],
@@ -48,14 +48,14 @@ const RAW_EN = [
   ['Day 300 of a one-person company: three pivots in the desert', 'The revenue curve, the mistakes, and the afternoon I almost quit.', ['Solo business', 'Retrospective'], 'Retro draft'],
   ['The 5 questions people ask most in the comments', '1. Can I do this without a tech background? 2. What does it cost per month? 3. Which model? 4. Is my data safe? 5. How long until I get the hang of it?', ['Audience insight'], 'Comments'],
   ['Cover color test: why bold stripes get more clicks', 'Three A/B rounds. Stripes won on clicks but didn\'t keep people watching any longer.', ['Covers', 'Experiment'], 'Test log'],
-  ['You don\'t lack ideas. You lack a place to keep them.', 'Could be the opening line for this desk itself.', ['Method'], 'Quick note'],
-  ['The first product I finished on a night bus', 'City lights in the background, told in first person. Feeling first, tech kept light.', ['Story', 'Indie hacking'], 'Vlog'],
+  ['You don\'t lack ideas. You lack a place to keep them.', 'Could be the opening line for Media Desk itself.', ['Method'], 'Quick note'],
+  ['The first product I finished on a night bus', 'City lights in the background, told in first person. Mood first, go light on the tech.', ['Story', 'Indie hacking'], 'Vlog'],
   ['The nerve to leave space: three products that got better after cutting half their features', 'Deleting is a design decision too. Make the case with real examples.', ['Product', 'Design'], 'Product notes'],
   ['The growth staircase: the real stages from 0 to 10k followers', 'Each step needs different work. Don\'t use a 100k playbook to win your first thousand.', ['Growth'], 'example.com'],
   ['An orange on the desk: an opening about attention', 'Stare at an orange for one minute, then ask the viewer: when did you last focus like that?', ['Openings', 'Productivity'], 'Quick idea'],
   ['The feel of type: why embossed letters make you want to touch the screen', 'From letterpress to the comeback of skeuomorphism in interfaces.', ['Design', 'Typography'], 'Type specimen'],
-  ['Eight seconds of ink: a transition library', 'Ink spreading in water works as a chapter transition. Package it as a set.', ['Footage', 'Editing'], 'Footage'],
-  ['Just one thing this week', 'Get from idea to finished piece in under 24 hours, and track how many posts that adds up to over a week.', ['Experiment', 'Workflow'], 'Weekly plan'],
+  ['Eight seconds of ink: a transition library', 'Ink spreading in water works as a chapter transition. Package it as a set.', ['Footage', 'Editing'], 'Stock clips'],
+  ['Just one thing this week', 'Cut the path from idea to finished post to under 24 hours, then track how much more you publish in a week.', ['Experiment', 'Workflow'], 'Weekly plan'],
   ['Gradients are back: why every AI product looks the same', 'When every product uses the same gradient, where does the difference go?', ['Design', 'AI'], 'Trend watch'],
   ['City lights at night: 6 moods for long-form images', 'A mood board of images that won\'t look like everyone else\'s.', ['Footage'], 'Mood board'],
   ['A letter to the anxious beginner', 'No tactics. Just what actually happens in your first year.', ['Beginners', 'Empathy'], 'Reader letter'],
@@ -113,6 +113,7 @@ export function migrateState(state) {
   if (state.activeStyleId === undefined) state.activeStyleId = null
   // 加入英文之前的数据都是中文示例
   if (state.sampleLang === undefined) state.sampleLang = 'zh'
+  if (state.sampleLang === 'en') stashChineseLeftovers(state)
   return migratePresets(state)
 }
 
@@ -241,6 +242,44 @@ function swapFields(row, original, target) {
   return changed
 }
 
+// 示例卡片在每种语言下各有一份：标题、正文和生成过的成稿。切走时把当前这份收起来，切回来原样放回。
+const ITEM_FIELDS = ['title', 'body', 'tags', 'source', 'production', 'drafts']
+
+const CJK = /[\u4e00-\u9fff]/
+
+// 2.6.0 切到英文时，示例上生成过的中文成稿和改过的中文标题会留在英文界面里。把它们收进中文那份。
+function stashChineseLeftovers(state) {
+  if (state.sampleCleared) return
+  for (const row of state.items ?? []) {
+    const text = row?.sample && !row.otherLang ? TABLES.en.items[row.id] : null
+    if (!text || !ITEM_FIELDS.some(field => row[field] !== undefined && CJK.test(JSON.stringify(row[field])))) continue
+    swapItem(row, 'zh', 'en', text)
+  }
+}
+
+function swapItem(row, from, target, text) {
+  if (from === target) {
+    swapFields(row, [TABLES.zh.items[row.id], TABLES.en.items[row.id]], text)
+    return
+  }
+  const saved = {}
+  for (const field of ITEM_FIELDS) if (row[field] !== undefined) saved[field] = row[field]
+  const stash = { ...(row.otherLang ?? {}), [from]: saved }
+  const back = stash[target]
+  delete stash[target]
+  if (back) {
+    for (const field of ITEM_FIELDS) {
+      if (back[field] === undefined) delete row[field]
+      else row[field] = back[field]
+    }
+  } else {
+    Object.assign(row, structuredClone(text))
+    delete row.production
+    row.drafts = {}
+  }
+  row.otherLang = stash
+}
+
 /**
  * 界面语言和示例数据的语言不一致时需要换一遍。
  * @param {object} state - 当前状态。
@@ -253,15 +292,20 @@ export function samplesNeedLocale(state, lang) {
 
 /**
  * 把还是示例的行（sample: true）和没改过的内置预设换成另一种语言。
- * 只动文字字段，状态、排期、成稿、数据和用户自己的内容都不碰；按 id 对应，可以重复调用。
+ * 示例卡片的文字、成稿和草稿每种语言各存一份，来回切换不会丢；状态、排期、数据和用户自己的内容都不碰。按 id 对应，可以重复调用。
  * @param {object} state - 会被就地修改的状态。
  * @param {string} lang - 目标语言。
  * @returns {object} 同一个 state。
  */
 export function localizeSamples(state, lang) {
   const target = normalizeLang(lang)
+  const from = normalizeLang(state.sampleLang ?? 'zh')
   if (!state.sampleCleared) {
-    for (const key of ['items', 'people', 'angles', 'skills', 'accounts']) {
+    for (const row of state.items ?? []) {
+      const to = row?.sample ? TABLES[target].items[row.id] : null
+      if (to) swapItem(row, from, target, to)
+    }
+    for (const key of ['people', 'angles', 'skills', 'accounts']) {
       for (const row of state[key] ?? []) {
         const to = row?.sample ? TABLES[target][key][row.id] : null
         if (to) swapFields(row, [TABLES.zh[key][row.id], TABLES.en[key][row.id]], to)

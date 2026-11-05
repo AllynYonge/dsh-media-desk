@@ -147,7 +147,7 @@ const PRESET_EN = {
     samples: ['I only went downstairs to grab a package. Turns out I sat out there for an hour.', 'Nothing big happened, but it was a nice day.'],
   },
   home: {
-    name: 'Living-alone home creator', summary: 'Makes ordinary rooms and days feel comfortable, and tells you honestly what it cost.',
+    name: 'Solo living creator', summary: 'Makes ordinary rooms and days feel comfortable, and tells you honestly what it cost.',
     tone: 'Quiet and gentle, with an unhurried, lived-in feel.', sentences: 'Short, light sentences about light, sound and habits. Hardly any exclamation marks.',
     opening: 'Open on a daily habit, like opening the window every morning.', structure: 'A daily habit → a small change to a space or object → what it cost and how → how it feels.',
     words: ['slowly', 'the light', 'while I\'m at it', 'cost me', 'just right'], avoid: ['aesthetic lifestyle', 'self-care ritual', 'selling insecurity'],
@@ -161,21 +161,21 @@ const PRESET_EN = {
     samples: ['On this page I realized I wasn\'t short on time. I just refused to give anything up.', 'In other words, decide what not to do first. You can try it today.'],
   },
   career: {
-    name: 'Career growth creator', summary: 'Opinion first. One real story that nails a lesson about work and says what everyone thinks but nobody says.',
+    name: 'Career creator', summary: 'Opinion first. One real story that nails a lesson about work and says what everyone thinks but nobody says.',
     tone: 'Direct and clear-eyed, a little sharp but never mean.', sentences: 'Short declarative lines, rhetorical questions and contrasts, examples down to the exact scene.',
     opening: 'Open by rejecting something everyone believes.', structure: 'A counterintuitive take → a scene I lived through → the logic behind it → one action you can copy.',
     words: ['Stop', 'The truth is', 'I\'ve seen', 'next meeting'], avoid: ['grind harder', 'fear-mongering', 'empty motivation'],
     samples: ['Stop saying you\'re bad at managing up. You\'ve been waiting for someone to notice you first.', 'The truth is, anything nobody claims before the meeting ends isn\'t getting done.'],
   },
   tutorial: {
-    name: 'Tool tutorial creator', summary: 'Shows you the result first, then walks you through step by step, with where each step tends to go wrong.',
+    name: 'How-to creator', summary: 'Shows you the result first, then walks you through step by step, with where each step tends to go wrong.',
     tone: 'Patient and efficient, like a friend sitting next to you.', sentences: 'Short sentences that start with a verb. Clear steps, one thing per step.',
     opening: 'Show the finished result and the time it saves.', structure: 'End result → what you need → step by step → the easiest mistake → what to try next.',
     words: ['Step one', 'click here', 'careful', 'once you\'re done', 'saves'], avoid: ['it\'s easy', 'everyone knows this', 'skipping steps'],
     samples: ['Here\'s the result. What used to take two hours now takes three minutes.', 'Careful, don\'t click OK yet. Check the format in the top right first. That\'s where nine out of ten mistakes happen.'],
   },
   business: {
-    name: 'Business breakdown creator', summary: 'Starts from something odd, then works out where the money comes from, whether the math works and what you can learn.',
+    name: 'Business explainer', summary: 'Starts from something odd, then works out where the money comes from, whether the math works and what you can learn.',
     tone: 'Calm and certain. Lets the numbers talk, no drama.', sentences: 'Short sentences, one idea each, lots of numbers and comparisons, and guesses labeled as guesses.',
     opening: 'Open with a strange number or fact.', structure: 'Something odd → how it makes money → run the numbers → where the risk is → what regular people can learn.',
     words: ['run the numbers', 'gross margin', 'in the end', 'the lesson is'], avoid: ['the next big thing', 'secret to wealth', 'guaranteed returns', 'investment advice'],
@@ -189,7 +189,7 @@ const PRESET_EN = {
     samples: ['Combination oily skin, two weeks in: less afternoon shine, but the bumps are unchanged.', 'Sensitive skin, hold off. Alcohol is high on the list and it stings a little.'],
   },
   outfit: {
-    name: 'Outfit creator', summary: 'Not just "looks good": who it suits, how to style it and how many seasons you get out of it.',
+    name: 'Fashion creator', summary: 'Not just "looks good": who it suits, how to style it and how many seasons you get out of it.',
     tone: 'Light and opinionated, with clear taste and no talking down.', sentences: 'Short sentences, height and size spelled out, styling down to specific pieces.',
     opening: 'Open with an occasion or a common fit problem.', structure: 'Occasion or problem → how this outfit comes together → why the proportions work → size and price → another way to wear it.',
     words: ['proportions', 'on me', 'for work', 'wear it many ways', 'swap in'], avoid: ['look ten pounds thinner', 'body shaming', 'must-buy'],

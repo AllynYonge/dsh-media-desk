@@ -196,7 +196,7 @@ export function InsightsView() {
         <section className="md-tile md-i-hero">
           <div className="md-hero-copy">
             <h1 className="md-i-line">
-              <b>{count(data.published, '1 条内容', '{n} 条内容')}</b> {t('带来了')} <b>{hasViews ? t(plural(data.views, '1 次播放', '{n} 次播放'), { n: compact(data.views) }) : t(plural(data.engaged, '1 次互动', '{n} 次互动'), { n: compact(data.engaged) })}</b>{t('，')}
+              <b>{count(data.published, '1 条内容', '{n} 条内容')}</b> {t('带来了')} <b>{hasViews ? t(plural(data.views, '1 次播放', '{n} 次播放'), { n: compact(data.views) }) : t(plural(data.engaged, '1 次互动', '{n} 次互动'), { n: compact(data.engaged) })}</b>{best ? t('，') : t('。')}
               {best ? <><br />{t('表现最好的是')} {heroPic ? <img className="md-inline-pic" src={heroPic} alt="" draggable={false} /> : null} <b>{best.title.length > 14 ? `${best.title.slice(0, 14)}…` : best.title}</b>{t('。')}</> : null}
             </h1>
             {actions}

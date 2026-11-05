@@ -7,7 +7,7 @@ const STATUS_WORDS = { 灵感: 'idea', 大纲: 'outline', 草稿: 'draft', 待�
 const CN_DIGIT = { 一: 1, 两: 2, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10, 十一: 11, 十二: 12 }
 const WEEK_EN = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 }
 const MONTH_EN = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
-const PLATFORM_WORDS = { wechat: '公众号', xiaohongshu: '小红书', rednote: '小红书', douyin: '抖音', bilibili: 'B站', channels: '视频号' }
+const PLATFORM_WORDS = { 'wechat channels': '视频号', wechat: '公众号', xiaohongshu: '小红书', rednote: '小红书', douyin: '抖音', bilibili: 'B站', channels: '视频号' }
 
 /** 英文里的日期时间：tomorrow 8pm、next wed、Nov 3 20:00、in 3 days。 */
 function parseWhenEn(text, now) {
@@ -197,7 +197,7 @@ export function localIntent(state, message, { focusId, now = new Date() } = {}) 
     const when = parseWhen(text, now)
     if (!when) return { reply: tr('没听出具体时间，可以说「明晚 8 点」或「11月3日 20:00」。'), ops: [] }
     if (!item) return { reply: tr('没找到要排期的内容，可以用《标题》告诉我是哪一篇。'), ops: [] }
-    const word = /\b(wechat|xiaohongshu|rednote|douyin|bilibili|channels)\b/i.exec(text)?.[1]
+    const word = /\b(wechat channels|wechat|xiaohongshu|rednote|douyin|bilibili|channels)\b/i.exec(text)?.[1]?.replace(/\s+/g, ' ')
     const platform = word ? PLATFORM_WORDS[word.toLowerCase()] : ['公众号', '小红书', '抖音', 'B站', '视频号', 'X'].find(p => text.includes(p))
     return { reply: tr('排好了。'), ops: [{ op: 'schedule_item', id: item.id, scheduledAt: when.toISOString(), ...(platform ? { platform } : {}) }] }
   }
