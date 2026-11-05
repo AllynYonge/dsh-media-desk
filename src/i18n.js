@@ -44,7 +44,7 @@ export function byLang(zh, en) {
   return currentLang() === 'en' ? en : zh
 }
 
-const PLATFORM_EN = { 公众号: 'WeChat', 小红书: 'RedNote', 抖音: 'Douyin', B站: 'Bilibili', 视频号: 'WeChat Channels', X: 'X' }
+const PLATFORM_EN = { 公众号: 'WeChat', 小红书: 'RedNote', 抖音: 'Douyin', B站: 'Bilibili', 视频号: 'WeChat Channels', TikTok: 'TikTok', Instagram: 'Instagram', YouTube: 'YouTube', X: 'X' }
 
 /** 平台在数据里一直是中文值；拼进给人看的句子时按当前语言显示。 */
 export function platformName(platform) {

@@ -6,6 +6,7 @@ import { plural, t } from './i18n.js'
 import { Icon, IconButton, Segmented } from './ui.jsx'
 import { MiniStamps } from './stamps.jsx'
 import { cardSize, scatterLayout } from './layout.js'
+import { relatedIdeas, relatedLayout } from './related.js'
 import { SPRING_SOFT, computeStreak, displayItem, hash, posterOf, reducedMotion, isIdea } from './util.js'
 
 function useCamera(stageRef, worldRef) {
@@ -77,14 +78,18 @@ function Hero() {
   const upcoming = items.filter(i => i.scheduledAt && i.status !== 'published' && new Date(i.scheduledAt) >= new Date() && new Date(i.scheduledAt) <= week)
   const streak = computeStreak(items)
   const pic = list => list.map(posterOf).find(Boolean)
+  const related = useDesk(s => s.related)
   const [text, setText] = React.useState('')
   const submit = async (event) => {
     event.preventDefault()
     const value = text.trim()
     if (!value) return
     setText('')
-    if (/^https?:\/\//i.test(value)) await captureUrl(value)
-    else await dispatchOps([{ op: 'add_item', kind: 'note', title: value.split(/[。！？\n]|[.!?](?=\s|$)/)[0].slice(0, 60), body: value.length > 60 ? value : '' }], { label: t('记下灵感') })
+    if (/^https?:\/\//i.test(value)) return captureUrl(value)
+    // 记下的同时，把提到同一件事的旧灵感拉到眼前
+    const ids = relatedIdeas(roots, value)
+    setDesk({ related: ids.length ? { query: value, ids, newId: null } : null })
+    await dispatchOps([{ op: 'add_item', kind: 'note', title: value.split(/[。！？\n]|[.!?](?=\s|$)/)[0].slice(0, 60), body: value.length > 60 ? value : '' }], { label: t('记下灵感') })
   }
   const now = new Date()
   return (
@@ -102,13 +107,19 @@ function Hero() {
         <input value={text} onChange={e => setText(e.target.value)} placeholder={t('记下一个灵感，或贴一个链接')} aria-label={t('记下灵感')} />
         <button type="submit" className="md-send" aria-label={t('记下')} disabled={!text.trim()}><Icon name="send" size={15} /></button>
       </form>
+      {related ? (
+        <p className="md-hero-related">
+          <span>{t('找到 {n} 条相关的灵感，放在了旁边', { n: related.ids.length, s: plural(related.ids.length, '', 's') })}</span>
+          <button type="button" className="md-inline-link" onClick={() => setDesk({ related: null })}>{t('放回去')}</button>
+        </p>
+      ) : null}
       {roots.length === 0 ? <p className="md-hero-hint">{t('写一句话、贴一个链接，或者把图片和视频拖进来。右上角的助手也能替你记。')}</p> : null}
       <MiniStamps />
     </section>
   )
 }
 
-function Node({ item, pos, index, entered, onOpen }) {
+function Node({ item, pos, index, entered, onOpen, tone }) {
   const ref = React.useRef(null)
   React.useLayoutEffect(() => {
     if (entered.current.has(item.id)) return
@@ -123,7 +134,7 @@ function Node({ item, pos, index, entered, onOpen }) {
   }, [entered, index, item.id, pos.x, pos.y])
   const size = cardSize(item)
   return (
-    <div ref={ref} className="md-node" data-node={item.id} style={{ left: pos.x, top: pos.y, width: size.w, '--r': `${pos.r ?? 0}deg`, '--d': pos.d ?? 0 }}>
+    <div ref={ref} className={`md-node${tone ? ` is-${tone}` : ''}`} data-node={item.id} style={{ left: pos.x, top: pos.y, width: size.w, '--r': `${pos.r ?? 0}deg`, '--d': pos.d ?? 0 }}>
       <div className="md-pop"><Card item={item} onOpen={onOpen} /></div>
     </div>
   )
@@ -145,17 +156,53 @@ function Scatter() {
   const suppressClick = React.useRef(false)
 
   const kind = useDesk(s => s.kindFilter)
+  const related = useDesk(s => s.related)
   const roots = React.useMemo(() => items.filter(isIdea), [items])
   const shown = React.useMemo(() => roots.filter(i => kind === 'all' || displayItem(i).kind === kind), [roots, kind])
   const rootKey = roots.map(i => `${i.id}:${i.pos ? `${i.pos.x},${i.pos.y}` : ''}:${i.production?.cover?.src ?? ''}`).join('|')
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const layout = React.useMemo(() => scatterLayout(roots), [rootKey])
 
+  const relatedSpots = React.useMemo(() => {
+    if (!related) return {}
+    const byId = new Map(roots.map(i => [i.id, i]))
+    return relatedLayout(related.ids.filter(id => byId.has(id)).map(id => ({ id, ...cardSize(byId.get(id)) })))
+  }, [related, roots])
+
   const posOf = React.useCallback((item) => {
     if (dragPos.current[item.id]) return dragPos.current[item.id]
+    if (related) {
+      // 相关的围在中间那句话四周，刚记下的那条放在正上方，不被底部工具条挡住
+      if (item.id === related.newId) return { x: 0, y: -200 - cardSize(item).h / 2, r: 0, d: 0 }
+      const spot = relatedSpots[item.id]
+      if (spot) return { ...spot, r: 0, d: 0 }
+    }
     if (item.pos) return { d: 0, ...item.pos }
     return layout[item.id] ?? { x: 0, y: 0, r: 0, d: 0 }
-  }, [layout])
+  }, [layout, related, relatedSpots])
+
+  // 拉出相关卡片后，镜头缩放到能把它们和中间那句话一起装下
+  React.useEffect(() => {
+    if (!related) return
+    const byId = new Map(roots.map(i => [i.id, i]))
+    let half = { x: 300, y: 240 }
+    for (const [id, p] of Object.entries(relatedSpots)) {
+      const size = cardSize(byId.get(id))
+      half = { x: Math.max(half.x, Math.abs(p.x) + size.w / 2), y: Math.max(half.y, Math.abs(p.y) + size.h / 2) }
+    }
+    const fresh = related.newId && byId.get(related.newId)
+    if (fresh) half.y = Math.max(half.y, 200 + cardSize(fresh).h)
+    const home = frameHome()
+    const { w, h } = stageBox()
+    flyTo({ ...home, s: Math.min(home.s, (w - 80) / (half.x * 2), (h - 150) / (half.y * 2)) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [relatedSpots, related?.newId])
+
+  const toneOf = (item) => {
+    if (!related) return null
+    if (item.id === related.newId || related.ids.includes(item.id)) return 'related'
+    return 'dim'
+  }
 
   const stageBox = React.useCallback(() => {
     const el = stageRef.current
@@ -180,6 +227,10 @@ function Scatter() {
     if (!previous) return
     const added = roots.find(i => !previous.has(i.id))
     if (!added) return
+    if (related && !related.newId) {
+      setDesk({ related: { ...related, newId: added.id } })
+      return
+    }
     const p = posOf(added)
     const size = cardSize(added)
     const { w, h } = stageBox()
@@ -337,6 +388,7 @@ function Scatter() {
       ref={stageRef}
       onPointerDown={onPointerDown}
       onFocus={onFocusIn}
+      onKeyDown={(event) => { if (event.key === 'Escape' && related) setDesk({ related: null }) }}
       onDragOver={e => e.preventDefault()}
       onDrop={(event) => {
         event.preventDefault()
@@ -346,7 +398,7 @@ function Scatter() {
     >
       <div className="md-world" ref={worldRef}>
         <div className="md-hero-anchor"><Hero /></div>
-        {shown.map((item, index) => <Node key={item.id} item={item} pos={posOf(item)} index={index} entered={entered} onOpen={openCard} />)}
+        {shown.map((item, index) => <Node key={item.id} item={item} pos={posOf(item)} index={index} entered={entered} onOpen={openCard} tone={toneOf(item)} />)}
       </div>
       <div className="md-toolrow md-toolrow-right" onPointerDown={e => e.stopPropagation()}>
         <IconButton icon="zoomOut" label={t('缩小')} onClick={() => zoomAt(0.8, ...center(), false)} />
@@ -361,15 +413,24 @@ function Scatter() {
 function Feed() {
   const items = useDesk(s => s.state.items)
   const kind = useDesk(s => s.kindFilter)
+  const related = useDesk(s => s.related)
+  const rank = id => (related ? related.ids.indexOf(id) : -1)
   const sorted = React.useMemo(() => items
     .filter(i => isIdea(i) && (kind === 'all' || displayItem(i).kind === kind))
-    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)), [items, kind])
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    // 有相关的灵感时排在最前面，按相关程度
+    .sort((a, b) => {
+      const ra = rank(a.id)
+      const rb = rank(b.id)
+      return (ra < 0 ? 99 : ra) - (rb < 0 ? 99 : rb)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }), [items, kind, related])
   return (
     <div className="md-wall-scroll">
       <div className="md-feed-hero"><Hero /></div>
       <div className="md-wall">
         {sorted.map((item, index) => (
-          <div key={item.id} className="md-wall-cell" style={{ animationDelay: `${Math.min(index * 22, 400)}ms` }}>
+          <div key={item.id} className={`md-wall-cell${rank(item.id) >= 0 ? ' is-related' : ''}`} style={{ animationDelay: `${Math.min(index * 22, 400)}ms` }}>
             <Card item={item} onOpen={(row, event) => openItem(row.id, originOf(event))} />
           </div>
         ))}

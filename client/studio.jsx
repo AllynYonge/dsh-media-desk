@@ -5,7 +5,7 @@ import { downloadCover } from './cover.js'
 import { cancelProduce, closeItem, dispatchOps, regenAsset, revealSaved, runProduce, saveProduced, setDesk, toast, useDesk, watchProduction } from './desk.js'
 import { plural, t } from './i18n.js'
 import { Icon, IconButton } from './ui.jsx'
-import { SPRING_SNAP, SPRING_SOFT, STYLE_CATEGORIES, fmtDate, fmtWhen, reducedMotion, renderMarkdown, styleIcon, toLocalInput } from './util.js'
+import { SPRING_SNAP, SPRING_SOFT, STYLE_CATEGORIES, fmtDate, fmtWhen, reducedMotion, renderMarkdown, styleIcon, textLength, toLocalInput } from './util.js'
 
 const isBusy = asset => ['pending', 'running'].includes(asset?.status)
 
@@ -55,7 +55,7 @@ function Plate({ asset, paper = false, mark = null, alt = '', onOpen, onRetry })
 function ProgressCard({ production, live, settings }) {
   const running = production.status === 'running'
   const ready = settings?.imageReady
-  const words = (production.article || live?.text || '').replace(/\s/g, '').length
+  const words = textLength(production.article || live?.text || '')
   const visuals = [production.cover, ...(production.images ?? [])].filter(Boolean)
   const shots = production.shots ?? []
   const count = list => list.filter(a => a.src).length
@@ -135,7 +135,7 @@ function HeroTile({ item, live, onView }) {
   const running = production?.status === 'running'
   const liveTitle = production?.stage === 'brief' && live?.title ? unescapeJson(live.title) : null
   const title = liveTitle ?? production?.title ?? item.title
-  const words = (production?.article || live?.text || '').replace(/\s/g, '').length
+  const words = textLength(production?.article || live?.text || '')
   const shots = production?.shots ?? []
   const seconds = shots.reduce((sum, shot) => sum + (shot.seconds ?? 0), 0)
   const images = production?.images ?? []
@@ -274,7 +274,7 @@ function ArticleTile({ item, live, open, onToggle, onView, tileRef }) {
     const box = tileRef.current.getBoundingClientRect()
     setPicked({ text: value, x: Math.max(70, Math.min(rect.left - box.left + rect.width / 2, box.width - 70)), y: rect.top - box.top })
   }
-  const words = text.replace(/\s/g, '').length
+  const words = textLength(text)
   return (
     <>
       <header className="md-tile-head">

@@ -139,14 +139,21 @@ function shift(base, days, hour = 10, minute = 0) {
  * @param {'zh'|'en'} [lang] - 示例用哪种语言写，默认跟随当前请求。
  * @returns {object} 完整状态。
  */
+function mediaOf(row) {
+  return row.img
+    ? { src: A(`${row.img[0]}.jpg`), w: row.img[1], h: row.img[2] }
+    : row.vid
+      ? { src: A(`${row.vid[0]}.mp4`), poster: A(`${row.vid[0]}-poster.jpg`), w: row.vid[1], h: row.vid[2] }
+      : null
+}
+
+// 图里印着中文的示例，英文界面换一张英文版
+const MEDIA_EN = { seed_7: 'poster-en', seed_20: 'emboss-en' }
+
 export function buildSeed(now, lang = currentLang()) {
   const items = RAW.map((row, index) => {
     const id = `seed_${index + 1}`
-    const media = row.img
-      ? { src: A(`${row.img[0]}.jpg`), w: row.img[1], h: row.img[2] }
-      : row.vid
-        ? { src: A(`${row.vid[0]}.mp4`), poster: A(`${row.vid[0]}-poster.jpg`), w: row.vid[1], h: row.vid[2] }
-        : null
+    const media = mediaOf(row)
     return {
       id,
       kind: row.k,
@@ -210,8 +217,11 @@ function textTables(lang) {
   const en = lang === 'en'
   return {
     items: Object.fromEntries(RAW.map((row, index) => {
+      const id = `seed_${index + 1}`
       const [title, body, tags, source] = en ? RAW_EN[index] : [row.t, row.b, row.tags, row.src]
-      return [`seed_${index + 1}`, { title, body, tags, source }]
+      if (!MEDIA_EN[id]) return [id, { title, body, tags, source }]
+      const media = mediaOf(row)
+      return [id, { title, body, tags, source, media: en ? { ...media, src: A(`${MEDIA_EN[id]}.jpg`) } : media }]
     })),
     people: Object.fromEntries(PEOPLE.map(([id, ...zh]) => {
       const [name, role, note, traits] = en ? PEOPLE_EN[id] : zh
@@ -243,7 +253,7 @@ function swapFields(row, original, target) {
 }
 
 // 示例卡片在每种语言下各有一份：标题、正文和生成过的成稿。切走时把当前这份收起来，切回来原样放回。
-const ITEM_FIELDS = ['title', 'body', 'tags', 'source', 'production', 'drafts']
+const ITEM_FIELDS = ['title', 'body', 'tags', 'source', 'media', 'production', 'drafts']
 
 const CJK = /[\u4e00-\u9fff]/
 
@@ -252,6 +262,7 @@ function stashChineseLeftovers(state) {
   if (state.sampleCleared) return
   for (const row of state.items ?? []) {
     const text = row?.sample && !row.otherLang ? TABLES.en.items[row.id] : null
+    if (text?.media && same(row.media, TABLES.zh.items[row.id].media)) row.media = structuredClone(text.media)
     if (!text || !ITEM_FIELDS.some(field => row[field] !== undefined && CJK.test(JSON.stringify(row[field])))) continue
     swapItem(row, 'zh', 'en', text)
   }

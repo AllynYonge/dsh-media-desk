@@ -5,7 +5,8 @@ import { ConnectDialog } from './connect.jsx'
 import { EN } from './en/index.js'
 import { lang, plural, t, useLang } from './i18n.js'
 import { Icon, Segmented } from './ui.jsx'
-import { PLATFORMS, compact, displayItem, fmtDate, posterOf, dayKey } from './util.js'
+const clip = (text, n) => (text.length > n ? `${text.slice(0, n).trimEnd()}…` : text)
+import { PLATFORMS, compact, platformChoices, displayItem, fmtDate, posterOf, dayKey } from './util.js'
 
 /** 带数量的文字：英文在 1 时用单数那条 key；{s} 给共用词典里写成 piece{s} 的那种。 */
 function count(n, one, other, vars = {}) {
@@ -84,7 +85,7 @@ function addMetric(items) {
       initial: { platform: '公众号', date: dayKey(new Date()) },
       fields: [
         { name: 'itemId', label: t('对应内容'), type: 'select', options: [{ value: '', label: t('不关联内容') }, ...items.filter(i => !i.parentId).map(i => ({ value: i.id, label: displayItem(i).title.slice(0, 26) }))] },
-        { name: 'platform', label: t('平台'), type: 'select', options: PLATFORMS.map(v => ({ value: v, label: t(v) })) },
+        { name: 'platform', label: t('平台'), type: 'select', options: platformChoices().map(v => ({ value: v, label: t(v) })) },
         { name: 'date', label: t('日期'), type: 'date', required: true },
         { name: 'views', label: t('播放 / 阅读'), type: 'number', required: true },
         { name: 'likes', label: t('点赞'), type: 'number' },
@@ -197,7 +198,7 @@ export function InsightsView() {
           <div className="md-hero-copy">
             <h1 className="md-i-line">
               <b>{count(data.published, '1 条内容', '{n} 条内容')}</b> {t('带来了')} <b>{hasViews ? t(plural(data.views, '1 次播放', '{n} 次播放'), { n: compact(data.views) }) : t(plural(data.engaged, '1 次互动', '{n} 次互动'), { n: compact(data.engaged) })}</b>{best ? t('，') : t('。')}
-              {best ? <><br />{t('表现最好的是')} {heroPic ? <img className="md-inline-pic" src={heroPic} alt="" draggable={false} /> : null} <b>{best.title.length > 14 ? `${best.title.slice(0, 14)}…` : best.title}</b>{t('。')}</> : null}
+              {best ? <><br />{t('表现最好的是')} {heroPic ? <img className="md-inline-pic" src={heroPic} alt="" draggable={false} /> : null} <b>{clip(best.title, lang() === 'en' ? 30 : 14)}</b>{t('。')}</> : null}
             </h1>
             {actions}
           </div>

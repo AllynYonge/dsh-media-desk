@@ -45,7 +45,7 @@ export const EN = {
   '{platform}账号': '{platform} account',
   '这个账号的文字太少，提炼不出风格': 'This account doesn\'t have enough text to learn a style from.',
   '没找到链接，请贴账号主页的链接': 'No link found. Paste the URL of the account\'s profile page.',
-  '认不出这个主页。目前支持小红书、抖音、B 站的账号主页链接，别的平台可以贴内容来提炼风格。': 'This profile link isn\'t recognized. RedNote, Douyin and Bilibili profiles are supported. For other platforms, paste your posts to learn a style.',
+  '认不出这个主页。目前支持小红书、抖音、B 站、TikTok、Instagram 和 X 的账号主页链接，别的平台可以贴内容来提炼风格。': 'This profile link isn\'t recognized. TikTok, Instagram, X, RedNote, Douyin and Bilibili profiles are supported. For other platforms, paste your posts to learn a style.',
   '这个链接打开后不是账号主页。请到账号主页再复制一次链接。': 'This link doesn\'t lead to an account profile. Open the profile page and copy its link again.',
   平台没有返回内容: 'The platform returned nothing',
   无标题: 'Untitled',

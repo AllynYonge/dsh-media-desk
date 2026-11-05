@@ -379,7 +379,9 @@ button.md-stamp:not(:disabled):hover { transform: scale(1.08) rotate(-2deg); }
 @keyframes md-develop { from { opacity: 0; filter: blur(10px); transform: scale(1.03); } }
 .md-plate.is-paper { border-radius: var(--r-sm); background: #fff; box-shadow: 0 0 0 .5px #17171a40; }
 .md-plate.is-paper img { object-fit: cover; }
-.md-plate-mark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--latin-serif); font-size: 26px; line-height: 1; color: #17171a1f; }
+.md-plate-mark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--latin-serif); font-size: 26px; line-height: 1; color: color-mix(in srgb, var(--ink) 12%, transparent); }
+/* 还没生成的分镜格不用白纸，免得暗色界面里一片白 */
+.md-plate.is-paper:not(:has(img)) { background: var(--hover); box-shadow: none; }
 .md-plate-failed { position: absolute; left: 6px; bottom: 6px; display: inline-flex; align-items: center; gap: 3px; padding: 0 6px; border-radius: var(--r-xs); background: var(--card); color: var(--ink3); font-size: 11px; line-height: 18px; box-shadow: var(--dsw-elevation-soft); }
 
 /* 正文 */
@@ -805,3 +807,10 @@ button.md-receipt:hover { transform: translateX(2px); }
   .md-hero-input { height: 44px; }
   .md-board-page { padding-top: 58px; }
 }
+
+/* 记灵感时拉到眼前的相关灵感 */
+.md-node.is-related { z-index: 9; }
+.md-node.is-related .md-card, .md-wall-cell.is-related .md-card { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent, #6b5cff) 55%, transparent), var(--dsw-elevation-soft); }
+.md-node.is-dim { opacity: .28; filter: saturate(.5); }
+.md-hero-related { margin-top: 10px; display: flex; gap: 10px; align-items: baseline; color: var(--ink2); font-size: 12.5px; line-height: 18px; animation: md-rise .5s var(--ease) both; }
+

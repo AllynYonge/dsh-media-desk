@@ -7,7 +7,7 @@ const BASE = 'media-desk/'
 
 let snapshot = {
   state: null, model: null, modelOk: null, modelError: null, canUndo: false, error: null,
-  view: 'home', mode: 'scatter', focusId: null, sheetOrigin: null, dockOpen: true, studioDock: false, chatQuote: null, query: '', kindFilter: 'all',
+  view: 'home', mode: 'scatter', focusId: null, sheetOrigin: null, dockOpen: true, studioDock: false, chatQuote: null, query: '', kindFilter: 'all', related: null,
   live: {}, settings: null, settingsOpen: false, thinking: false, toast: null, capture: null, dialog: null,
 }
 const listeners = new Set()

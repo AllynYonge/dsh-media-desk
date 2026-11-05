@@ -15,6 +15,9 @@ function detect(text) {
   if (/xiaohongshu\.com|xhslink\.com/i.test(value)) return { platform: '小红书', estimate: '$0.02' }
   if (/douyin\.com/i.test(value)) return { platform: '抖音', estimate: '$0.002' }
   if (/bilibili\.com|b23\.tv/i.test(value)) return { platform: 'B站', estimate: '$0.003' }
+  if (/tiktok\.com/i.test(value)) return { platform: 'TikTok', estimate: '$0.002' }
+  if (/instagram\.com/i.test(value)) return { platform: 'Instagram', estimate: '$0.002' }
+  if (/(?:^|[/.])(?:x|twitter)\.com/i.test(value)) return { platform: 'X', estimate: '$0.001' }
   return null
 }
 
@@ -38,7 +41,7 @@ function CopyLine({ value, label }) {
 function SetupGuide({ status, checking, onCheck }) {
   return (
     <div className="md-setup">
-      <p className="md-setup-lead">{t('小红书、抖音、B 站的数据要通过 Monid 读取。它是第三方数据服务，按次收费，一个账号大约几分钱。')}</p>
+      <p className="md-setup-lead">{t('小红书、抖音、B 站、TikTok、Instagram 和 X 的数据要通过 Monid 读取。它是第三方数据服务，按次收费，一个账号大约几分钱。')}</p>
       <ol>
         <li>
           <strong>{t('把这句话发给 DeepSeek Harness 的新会话')}</strong>
@@ -80,7 +83,7 @@ function AccountForm({ status, onClose }) {
     <form className="md-form" onSubmit={submit}>
       <label className="md-field">
         <span>{t('你的账号主页链接')}</span>
-        <textarea rows={3} required value={text} onChange={e => setText(e.target.value)} placeholder={t('小红书、抖音或 B 站的主页链接，App 分享出来的文字也可以')} />
+        <textarea rows={3} required value={text} onChange={e => setText(e.target.value)} placeholder={t('小红书、抖音、B 站、TikTok、Instagram 或 X 的主页链接，App 分享出来的文字也可以')} />
         <small>{t('请只抓自己的账号。会读取最近 20 条公开内容和互动数据，放进内容和复盘，并提炼成你的风格。')}</small>
       </label>
       {saved.length ? (

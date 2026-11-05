@@ -35,7 +35,7 @@ function AddStyleDialog({ initialTab, onClose, onConnect }) {
           <label className="md-field">
             <span>{t('链接')}</span>
             <textarea rows={4} required value={urls} onChange={e => setUrls(e.target.value)} placeholder={t('你自己发过的内容链接\n一行一个，最多 5 个')} />
-            <small>{t('只读公开页面。小红书、抖音、B 站要登录才能看，')}<button type="button" className="md-inline-link" onClick={onConnect}>{t('改用导入账号')}</button>{t('。')}</small>
+            <small>{t('只读公开页面。小红书、抖音、B 站和 TikTok、Instagram、X 要登录才能看，')}<button type="button" className="md-inline-link" onClick={onConnect}>{t('改用导入账号')}</button>{t('。')}</small>
           </label>
         )}
         <label className="md-field">

@@ -5,7 +5,12 @@ import { lang, t } from './i18n.js'
 export const STATUSES = ['idea', 'outline', 'draft', 'ready', 'published']
 export const STATUS_LABEL = { idea: '灵感', outline: '大纲', draft: '草稿', ready: '待发布', published: '已发布' }
 export const KIND_LABEL = { image: '图片', video: '视频', web: '网页', quote: '金句', note: '笔记' }
-export const PLATFORMS = ['公众号', '小红书', '抖音', 'B站', '视频号', 'X']
+export const PLATFORMS = ['公众号', '小红书', '抖音', 'B站', '视频号', 'TikTok', 'Instagram', 'YouTube', 'X']
+const OVERSEAS = new Set(['TikTok', 'Instagram', 'YouTube', 'X'])
+/** 下拉框里的平台顺序：英文界面把海外平台放前面。 */
+export function platformChoices() {
+  return lang() === 'en' ? [...PLATFORMS.filter(p => OVERSEAS.has(p)), ...PLATFORMS.filter(p => !OVERSEAS.has(p))] : PLATFORMS
+}
 export const STYLE_CATEGORIES = ['科技数码', '旅行探店', 'Vlog 生活', '观点认知', '干货教程', '种草测评', '情感故事', '热点资讯']
 
 export function styleIcon(style) {
@@ -13,7 +18,7 @@ export function styleIcon(style) {
 }
 export const PLATFORM_URL = {
   公众号: 'https://mp.weixin.qq.com/', 小红书: 'https://creator.xiaohongshu.com/publish/publish', 抖音: 'https://creator.douyin.com/creator-micro/content/upload',
-  B站: 'https://member.bilibili.com/platform/upload/video/frame', 视频号: 'https://channels.weixin.qq.com/platform/post/create', X: 'https://x.com/compose/post',
+  B站: 'https://member.bilibili.com/platform/upload/video/frame', 视频号: 'https://channels.weixin.qq.com/platform/post/create', TikTok: 'https://www.tiktok.com/tiktokstudio/upload', Instagram: 'https://www.instagram.com/', YouTube: 'https://studio.youtube.com/', X: 'https://x.com/compose/post',
 }
 
 export function hash(text) {
@@ -198,3 +203,10 @@ export function renderMarkdown(source) {
   }
   return out.join('')
 }
+
+/** 正文长度：中文按字数（不算空白），英文按词数，中文字在英文里各算一个。 */
+export function textLength(text) {
+  if (lang() !== 'en') return text.replace(/\s/g, '').length
+  return (text.match(/[\u4e00-\u9fff]|[A-Za-z0-9][A-Za-z0-9'’-]*/g) || []).length
+}
+

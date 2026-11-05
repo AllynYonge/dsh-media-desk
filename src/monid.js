@@ -13,7 +13,7 @@ const RUN_WAIT_SECONDS = 120
 const MAX_OUTPUT = 64 * 1024 * 1024
 const COVER_MAX_BYTES = 8 * 1024 * 1024
 const COVER_CONCURRENCY = 4
-const SHORT_HOSTS = ['xhslink.com', 'v.douyin.com', 'b23.tv']
+const SHORT_HOSTS = ['xhslink.com', 'v.douyin.com', 'b23.tv', 'vm.tiktok.com', 'vt.tiktok.com']
 
 export const MONID_SKILL_URL = 'https://monid.ai/SKILL.md'
 
@@ -40,6 +40,35 @@ const SOURCES = {
       relation: '/api/v1/bilibili/web/fetch_user_relation_stat',
     },
   },
+  TikTok: {
+    query: (id, kind) => (kind === 'posts' ? { unique_id: id, count: POST_COUNT } : { unique_id: id }),
+    calls: {
+      posts: '/api/v1/tiktok/app/v3/fetch_user_post_videos',
+      profile: '/api/v1/tiktok/app/v3/handler_user_profile',
+    },
+  },
+  // Instagram 要先用用户名查到数字 ID，才能读帖子
+  Instagram: {
+    profileFirst: true,
+    query: (id, kind, profile) => (kind === 'posts' ? { user_id: profile?.data?.user?.id, count: Math.min(POST_COUNT, 50) } : { username: id }),
+    calls: {
+      profile: '/api/v1/instagram/v1/fetch_user_info_by_username',
+      posts: '/api/v1/instagram/v1/fetch_user_posts',
+    },
+  },
+  // X 的帖子接口顺带返回账号资料，一次就够
+  X: {
+    query: id => ({ screen_name: id }),
+    calls: {
+      posts: '/api/v1/twitter/web/fetch_user_post_tweet',
+    },
+  },
+}
+
+// 主页链接里这些路径不是账号名
+const RESERVED = {
+  Instagram: new Set(['p', 'reel', 'reels', 'explore', 'stories', 'accounts', 'direct', 'tv']),
+  X: new Set(['i', 'home', 'search', 'explore', 'intent', 'share', 'settings', 'messages', 'notifications', 'hashtag', 'compose']),
 }
 
 function hostIs(host, name) {
@@ -78,6 +107,18 @@ export function parseAccountUrl(raw) {
     const id = /^\/(?:space\/)?(\d{1,20})(?:\/|$)/.exec(url.pathname)?.[1]
     return id ? { platform: 'B站', id, url: `https://space.bilibili.com/${id}` } : null
   }
+  if (hostIs(host, 'tiktok.com')) {
+    const id = /^\/@([\w.]{2,24})(?:\/|$)/.exec(url.pathname)?.[1]
+    return id ? { platform: 'TikTok', id, url: `https://www.tiktok.com/@${id}` } : null
+  }
+  if (hostIs(host, 'instagram.com')) {
+    const id = /^\/([\w.]{1,30})\/?$/.exec(url.pathname)?.[1]
+    return id && !RESERVED.Instagram.has(id.toLowerCase()) ? { platform: 'Instagram', id, url: `https://www.instagram.com/${id}/` } : null
+  }
+  if (hostIs(host, 'x.com') || hostIs(host, 'twitter.com')) {
+    const id = /^\/(\w{1,15})\/?$/.exec(url.pathname)?.[1]
+    return id && !RESERVED.X.has(id.toLowerCase()) ? { platform: 'X', id, url: `https://x.com/${id}` } : null
+  }
   return null
 }
 
@@ -85,7 +126,7 @@ export function parseAccountUrl(raw) {
 export async function resolveAccount(text, fetchImpl = fetch) {
   const first = findUrl(text)
   if (!first) throw Object.assign(new Error(tr('没找到链接，请贴账号主页的链接')), { status: 400 })
-  const unsupported = () => Object.assign(new Error(tr('认不出这个主页。目前支持小红书、抖音、B 站的账号主页链接，别的平台可以贴内容来提炼风格。')), { status: 400 })
+  const unsupported = () => Object.assign(new Error(tr('认不出这个主页。目前支持小红书、抖音、B 站、TikTok、Instagram 和 X 的账号主页链接，别的平台可以贴内容来提炼风格。')), { status: 400 })
   let current = first
   for (let hop = 0; hop < 4; hop += 1) {
     const account = parseAccountUrl(current)
@@ -125,7 +166,10 @@ function firstLine(value, fallback) {
 }
 
 function assertOk(platform, output) {
-  const failed = platform === '抖音' ? output?.status_code !== 0 : output?.code !== 0 && output?.code !== 200 && output?.success !== true
+  const failed = platform === '抖音' || platform === 'TikTok' ? output?.status_code !== 0
+    : platform === 'Instagram' ? !Array.isArray(output?.items ?? output?.data?.items)
+      : platform === 'X' ? !Array.isArray(output?.timeline)
+        : output?.code !== 0 && output?.code !== 200 && output?.success !== true
   if (failed) throw new Error(text(output?.status_msg ?? output?.msg ?? output?.message, 120) || tr('平台没有返回内容'))
 }
 
@@ -153,6 +197,41 @@ export function normalizePosts(platform, output) {
       }
     })
   }
+  if (platform === 'TikTok') {
+    return (output?.aweme_list ?? []).filter(row => /^\d+$/.test(row?.aweme_id ?? '')).map((row) => {
+      const stat = row.statistics ?? {}
+      const body = text(row.desc, 2000)
+      const handle = /^[\w.]{2,24}$/.test(row.author?.unique_id ?? '') ? row.author.unique_id : 'tiktok'
+      return {
+        id: row.aweme_id, title: firstLine(body, tr('无标题')), body, publishedAt: isoFromSeconds(row.create_time),
+        url: `https://www.tiktok.com/@${handle}/video/${row.aweme_id}`, cover: httpsUrl(row.video?.cover?.url_list?.[0] ?? row.video?.origin_cover?.url_list?.[0]),
+        views: count(stat.play_count), likes: count(stat.digg_count), comments: count(stat.comment_count), saves: count(stat.collect_count), shares: count(stat.share_count),
+      }
+    })
+  }
+  if (platform === 'Instagram') {
+    return (output?.items ?? output?.data?.items ?? []).filter(row => /^[\w-]{5,40}$/.test(row?.code ?? '')).map((row) => {
+      const body = text(row.caption?.text, 2000)
+      return {
+        id: row.code, title: firstLine(body, tr('无标题')), body, publishedAt: isoFromSeconds(row.taken_at),
+        url: `https://www.instagram.com/p/${row.code}/`, cover: httpsUrl(row.image_versions2?.candidates?.[0]?.url ?? row.carousel_media?.[0]?.image_versions2?.candidates?.[0]?.url),
+        views: count(row.ig_play_count ?? row.play_count ?? row.view_count), likes: count(row.like_count), comments: count(row.comment_count), saves: 0, shares: 0,
+      }
+    })
+  }
+  if (platform === 'X') {
+    const screen = /^\w{1,15}$/.test(output?.user?.profile ?? '') ? output.user.profile : 'i'
+    return (output?.timeline ?? []).filter(row => /^\d+$/.test(row?.tweet_id ?? '')).map((row) => {
+      const body = text(row.text, 2000)
+      const at = Date.parse(row.created_at)
+      const photo = (row.media ?? []).map(m => m?.media_url_https ?? m?.url).find(Boolean)
+      return {
+        id: row.tweet_id, title: firstLine(body, tr('无标题')), body, publishedAt: Number.isFinite(at) ? new Date(at).toISOString() : new Date().toISOString(),
+        url: `https://x.com/${screen}/status/${row.tweet_id}`, cover: httpsUrl(photo),
+        views: count(Number(row.views)), likes: count(row.favorites), comments: count(row.replies), saves: count(row.bookmarks), shares: count(row.retweets) + count(row.quotes),
+      }
+    })
+  }
   return (output?.data?.list?.vlist ?? []).filter(row => /^BV\w+$/.test(row?.bvid ?? '')).map(row => ({
     id: row.bvid, title: text(row.title, 80) || tr('无标题'), body: text(row.description, 2000), publishedAt: isoFromSeconds(row.created),
     url: `https://www.bilibili.com/video/${row.bvid}`, cover: httpsUrl(row.pic),
@@ -169,6 +248,18 @@ export function normalizeProfile(platform, { profile, relation }) {
   if (platform === '抖音') {
     const user = profile?.user ?? {}
     return { nickname: text(user.nickname, 40), description: text(user.signature, 300), followers: count(user.follower_count) }
+  }
+  if (platform === 'TikTok') {
+    const user = profile?.user ?? {}
+    return { nickname: text(user.nickname, 40), description: text(user.signature, 300), followers: count(user.follower_count) }
+  }
+  if (platform === 'Instagram') {
+    const user = profile?.data?.user ?? {}
+    return { nickname: text(user.full_name || user.username, 40), description: text(user.biography, 300), followers: count(user.edge_followed_by?.count ?? user.follower_count) }
+  }
+  if (platform === 'X') {
+    const user = profile ?? {}
+    return { nickname: text(user.name, 40), description: text(user.desc, 300), followers: count(user.sub_count ?? user.followers_count) }
   }
   const data = profile?.data ?? {}
   return { nickname: text(data.name, 40), description: text(data.sign, 300), followers: count(relation?.follower ?? relation?.data?.follower) }
@@ -270,12 +361,20 @@ async function runEndpoint(run, endpoint, query) {
  */
 export async function fetchAccount(account, run) {
   const source = SOURCES[account.platform]
-  const posts = await runEndpoint(run, source.calls.posts, source.query(account.id, 'posts'))
-  let cost = posts.cost
+  const extras = {}
+  let cost = 0
+  if (source.profileFirst) {
+    const first = await runEndpoint(run, source.calls.profile, source.query(account.id, 'profile'))
+    extras.profile = first.output
+    cost += first.cost
+  }
+  const posts = await runEndpoint(run, source.calls.posts, source.query(account.id, 'posts', extras.profile))
+  cost += posts.cost
   const list = normalizePosts(account.platform, posts.output)
   if (!list.length) throw Object.assign(new Error(tr('没抓到内容，账号可能是私密的或者还没发过内容。')), { status: 404, cost })
-  const extras = {}
+  if (account.platform === 'X') extras.profile = posts.output?.user
   for (const kind of ['profile', 'relation']) {
+    if (extras[kind]) continue
     if (!source.calls[kind]) continue
     try {
       const result = await runEndpoint(run, source.calls[kind], source.query(account.id, kind))

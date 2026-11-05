@@ -36,7 +36,10 @@ test('英文请求下生成英文示例，结构和中文版完全一致', async
   const en = withLang('en', () => buildSeed(NOW))
   assert.equal(zh.sampleLang, 'zh')
   assert.equal(en.sampleLang, 'en')
-  assert.deepEqual(en.items.map(row => [row.id, row.kind, row.status, row.platform, row.scheduledAt, row.media?.src ?? null]), zh.items.map(row => [row.id, row.kind, row.status, row.platform, row.scheduledAt, row.media?.src ?? null]))
+  assert.deepEqual(en.items.map(row => [row.id, row.kind, row.status, row.platform, row.scheduledAt, row.media?.src ?? null]), zh.items.map(row => [row.id, row.kind, row.status, row.platform, row.scheduledAt, ({ seed_7: 'media-desk/assets/poster-en.jpg', seed_20: 'media-desk/assets/emboss-en.jpg' })[row.id] ?? row.media?.src ?? null]))
+  // 图上印着中文的那张，英文版换成英文图；切回中文换回来
+  const back = localizeSamples(structuredClone(en), 'zh')
+  assert.equal(back.items.find(row => row.id === 'seed_7').media.src, 'media-desk/assets/poster.jpg')
   assert.deepEqual(en.metrics, zh.metrics)
   assert.deepEqual(en.styles.map(row => [row.id, row.category, row.icon]), zh.styles.map(row => [row.id, row.category, row.icon]))
   for (const row of en.items) for (const field of ['title', 'body', 'source', ...row.tags]) assert.ok(!CJK.test(field in row ? row[field] : field), `${row.id} ${field}`)

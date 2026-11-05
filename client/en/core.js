@@ -26,6 +26,8 @@ export const CORE = {
   // 记灵感
   '记下一个灵感': 'New idea',
   '记下灵感': 'Add idea',
+  '找到 {n} 条相关的灵感，放在了旁边': 'Pulled {n} related idea{s} in close',
+  '放回去': 'Put back',
   '笔记': 'Note',
   '金句': 'Quote',
   '链接': 'Link',
