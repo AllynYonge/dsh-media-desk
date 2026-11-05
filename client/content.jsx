@@ -2,6 +2,7 @@
 import React from 'react'
 import { dispatchOps, openItem, setDesk, useDesk } from './desk.js'
 import { Empty, Icon, Segmented } from './ui.jsx'
+import { plural, t, useLang } from './i18n.js'
 import { KIND_LABEL, STATUSES, STATUS_LABEL, displayItem, fmtWhen, posterOf, relativeDay } from './util.js'
 
 function useContentItems() {
@@ -9,7 +10,7 @@ function useContentItems() {
   const query = useDesk(s => s.query).trim().toLowerCase()
   return React.useMemo(() => items.filter((item) => {
     if (!query) return true
-    return [item.title, item.body, item.source, item.platform, ...(item.tags ?? [])].some(v => String(v ?? '').toLowerCase().includes(query))
+    return [item.title, item.body, item.source, item.platform, item.platform && t(item.platform), ...(item.tags ?? [])].some(v => String(v ?? '').toLowerCase().includes(query))
   }), [items, query])
 }
 
@@ -34,7 +35,7 @@ function BoardCard({ item: raw }) {
       {poster ? <img src={poster} alt="" loading="lazy" draggable={false} /> : null}
       <strong>{item.title}</strong>
       <span className="md-board-meta">
-        {item.platform ? <span>{item.platform}</span> : null}
+        {item.platform ? <span>{t(item.platform)}</span> : null}
         {item.scheduledAt && item.status !== 'published' ? <span className="is-time">{relativeDay(item.scheduledAt)}</span> : null}
         {raw.production?.status === 'done' || item.drafts?.article ? <Icon name="pen" size={12} /> : null}
         {item.drafts?.script ? <Icon name="film" size={12} /> : null}
@@ -54,7 +55,7 @@ function Board({ items }) {
           <section
             key={status}
             className={`md-board-col ${over === status ? 'is-over' : ''}`}
-            aria-label={STATUS_LABEL[status]}
+            aria-label={t(STATUS_LABEL[status])}
             onDragOver={(event) => {
               event.preventDefault()
               setOver(status)
@@ -66,12 +67,12 @@ function Board({ items }) {
               event.preventDefault()
               setOver(null)
               const id = event.dataTransfer.getData('text/media-desk-item')
-              if (id) dispatchOps([{ op: 'set_status', id, status }], { label: '修改状态' })
+              if (id) dispatchOps([{ op: 'set_status', id, status }], { label: t('修改状态') })
             }}
           >
             <header>
               <span className={`md-dot status-${status}`} />
-              <h3>{STATUS_LABEL[status]}</h3>
+              <h3>{t(STATUS_LABEL[status])}</h3>
               <span className="md-muted">{rows.length}</span>
             </header>
             <div className="md-board-list">
@@ -84,6 +85,7 @@ function Board({ items }) {
   )
 }
 
+// label 是中文原文，显示时再翻译
 const COLUMNS = [
   { key: 'title', label: '内容', get: i => i.title },
   { key: 'status', label: '状态', get: i => STATUSES.indexOf(i.status) },
@@ -110,7 +112,7 @@ function Table({ items }) {
             {COLUMNS.map(column => (
               <th key={column.key} aria-sort={sort.key === column.key ? (sort.dir > 0 ? 'ascending' : 'descending') : 'none'}>
                 <button type="button" onClick={() => setSort(s => ({ key: column.key, dir: s.key === column.key ? -s.dir : 1 }))}>
-                  {column.label}
+                  {t(column.label)}
                   {sort.key === column.key ? <Icon name={sort.dir > 0 ? 'send' : 'chevD'} size={11} /> : null}
                 </button>
               </th>
@@ -124,10 +126,10 @@ function Table({ items }) {
               <tr key={item.id} onClick={() => openItem(item.id)} tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter') openItem(item.id) }}>
                 <td className="md-table-title">
                   <span className="md-thumb">{poster ? <img src={poster} alt="" loading="lazy" /> : <span>{item.title.slice(0, 1)}</span>}</span>
-                  <span><strong>{item.title}</strong><small>{item.parentId ? '分支 · ' : ''}{KIND_LABEL[item.kind]}{item.source ? ` · ${item.source}` : ''}</small></span>
+                  <span><strong>{item.title}</strong><small>{item.parentId ? `${t('分支')} · ` : ''}{t(KIND_LABEL[item.kind])}{item.source ? ` · ${item.source}` : ''}</small></span>
                 </td>
-                <td><span className={`md-status status-${item.status}`}>{STATUS_LABEL[item.status]}</span></td>
-                <td>{item.platform ?? '—'}</td>
+                <td><span className={`md-status status-${item.status}`}>{t(STATUS_LABEL[item.status])}</span></td>
+                <td>{item.platform ? t(item.platform) : '—'}</td>
                 <td className="md-nowrap">{item.scheduledAt ? fmtWhen(item.scheduledAt) : '—'}</td>
                 <td className="md-nowrap">{relativeDay(item.createdAt)}</td>
               </tr>
@@ -140,6 +142,7 @@ function Table({ items }) {
 }
 
 export function ContentView() {
+  useLang()
   const [mode, setMode] = React.useState('board')
   const items = useContentItems()
   const query = useDesk(s => s.query)
@@ -149,17 +152,22 @@ export function ContentView() {
     <div className="md-page">
       <header className="md-page-head">
         <div>
-          <h1>内容</h1>
-          <p className="md-page-sub">共 {items.length} 条 · {counts[0]} 个灵感待推进 · {drafts} 篇已成稿 · {counts[4]} 篇已发布</p>
+          <h1>{t('内容')}</h1>
+          <p className="md-page-sub">{[
+            t(plural(items.length, '共 1 条', '共 {n} 条'), { n: items.length }),
+            t(plural(counts[0], '1 个灵感待推进', '{n} 个灵感待推进'), { n: counts[0] }),
+            t('{n} 篇已成稿', { n: drafts }),
+            t('{n} 篇已发布', { n: counts[4] }),
+          ].join(' · ')}</p>
         </div>
         <span style={{ flex: 1 }} />
         <label className="md-search">
           <Icon name="search" size={15} />
-          <input value={query} onChange={e => setDesk({ query: e.target.value })} placeholder="搜索标题、标签、平台" aria-label="搜索内容" />
+          <input value={query} onChange={e => setDesk({ query: e.target.value })} placeholder={t('搜索标题、标签、平台')} aria-label={t('搜索内容')} />
         </label>
-        <Segmented label="显示方式" value={mode} onChange={setMode} options={[{ value: 'board', label: '看板' }, { value: 'table', label: '表格' }]} />
+        <Segmented label={t('显示方式')} value={mode} onChange={setMode} options={[{ value: 'board', label: t('看板') }, { value: 'table', label: t('表格') }]} />
       </header>
-      {items.length === 0 ? <Empty title={query ? '没有匹配的内容' : '还没有内容'} hint={query ? '换个关键词试试。' : '到灵感页记下第一条。'} /> : mode === 'board' ? <Board items={items} /> : <Table items={items} />}
+      {items.length === 0 ? <Empty title={query ? t('没有匹配的内容') : t('还没有内容')} hint={query ? t('换个关键词试试。') : t('到灵感页记下第一条。')} /> : mode === 'board' ? <Board items={items} /> : <Table items={items} />}
     </div>
   )
 }

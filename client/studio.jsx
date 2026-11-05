@@ -3,6 +3,7 @@ import React from 'react'
 import { ChatPanel } from './chat.jsx'
 import { downloadCover } from './cover.js'
 import { cancelProduce, closeItem, dispatchOps, regenAsset, revealSaved, runProduce, saveProduced, setDesk, toast, useDesk, watchProduction } from './desk.js'
+import { plural, t } from './i18n.js'
 import { Icon, IconButton } from './ui.jsx'
 import { SPRING_SNAP, SPRING_SOFT, STYLE_CATEGORIES, fmtDate, fmtWhen, reducedMotion, renderMarkdown, styleIcon, toLocalInput } from './util.js'
 
@@ -42,10 +43,10 @@ function Plate({ asset, paper = false, mark = null, alt = '', onOpen, onRetry })
   const clickable = Boolean(asset?.src && onOpen)
   const retry = onRetry && ['failed', 'skipped', 'idle'].includes(status) && !asset?.src
   return (
-    <div className={`md-plate ${paper ? 'is-paper' : 'is-wash'} ${clickable ? 'is-clickable' : ''}`} data-status={status} onClick={clickable ? onOpen : undefined} role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined} onKeyDown={clickable ? (event) => { if (event.key === 'Enter') onOpen(event) } : undefined} aria-label={clickable ? `查看 ${alt}`.trim() : undefined}>
+    <div className={`md-plate ${paper ? 'is-paper' : 'is-wash'} ${clickable ? 'is-clickable' : ''}`} data-status={status} onClick={clickable ? onOpen : undefined} role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined} onKeyDown={clickable ? (event) => { if (event.key === 'Enter') onOpen(event) } : undefined} aria-label={clickable ? t('查看 {name}', { name: alt }).trim() : undefined}>
       {asset?.src ? <img key={asset.src} src={asset.src} alt={alt} draggable={false} /> : mark ? <span className="md-plate-mark" aria-hidden="true">{mark}</span> : null}
-      {retry ? <button type="button" className="md-plate-failed" title={asset?.error} onClick={(event) => { event.stopPropagation(); onRetry() }}><Icon name="refresh" size={12} />{status === 'failed' ? '没画成，重画' : '画这张'}</button>
-        : status === 'failed' ? <span className="md-plate-failed" title={asset.error}><Icon name="refresh" size={12} />没画成</span> : null}
+      {retry ? <button type="button" className="md-plate-failed" title={asset?.error} onClick={(event) => { event.stopPropagation(); onRetry() }}><Icon name="refresh" size={12} />{status === 'failed' ? t('没画成，重画') : t('画这张')}</button>
+        : status === 'failed' ? <span className="md-plate-failed" title={asset.error}><Icon name="refresh" size={12} />{t('没画成')}</span> : null}
     </div>
   )
 }
@@ -60,22 +61,22 @@ function ProgressCard({ production, live, settings }) {
   const count = list => list.filter(a => a.src).length
   const planned = production.stage !== 'brief'
   const steps = [
-    { label: '标题和封面字', done: planned, active: !planned },
-    { label: production.article ? `脚本 ${words} 字` : words ? `正在写 ${words} 字` : '脚本', done: Boolean(production.article), active: planned && !production.article },
+    { label: t('标题和封面字'), done: planned, active: !planned },
+    { label: production.article ? t('脚本 {n} 字', { n: words, s: plural(words, '', 's') }) : words ? t('正在写 {n} 字', { n: words, s: plural(words, '', 's') }) : t('脚本'), done: Boolean(production.article), active: planned && !production.article },
     ...(ready ? [
-      { label: `封面和配图 ${count(visuals)}/${visuals.length || 1 + (settings?.imageCount ?? 2)}`, done: planned && visuals.length > 0 && !visuals.some(isBusy), active: visuals.some(isBusy) },
-      { label: `分镜 ${count(shots)}/${shots.length || settings?.shotCount || 6}`, done: planned && shots.length > 0 && !shots.some(isBusy), active: shots.some(isBusy) },
+      { label: t('封面和配图 {done}/{total}', { done: count(visuals), total: visuals.length || 1 + (settings?.imageCount ?? 2) }), done: planned && visuals.length > 0 && !visuals.some(isBusy), active: visuals.some(isBusy) },
+      { label: t('分镜 {done}/{total}', { done: count(shots), total: shots.length || settings?.shotCount || 6 }), done: planned && shots.length > 0 && !shots.some(isBusy), active: shots.some(isBusy) },
     ] : []),
   ]
   return (
     <div className="md-progress-card">
-      {steps.map(step => (
-        <div key={step.label.slice(0, 2)} className={`md-progress-step ${step.done ? 'is-done' : step.active && running ? 'is-active' : ''}`}>
+      {steps.map((step, index) => (
+        <div key={index} className={`md-progress-step ${step.done ? 'is-done' : step.active && running ? 'is-active' : ''}`}>
           <i>{step.done ? <Icon name="check" size={10} stroke={2.6} /> : null}</i>
           <span>{step.active && running ? <span className="md-shimmer">{step.label}</span> : step.label}</span>
         </div>
       ))}
-      {running ? <button type="button" className="md-link-btn" onClick={() => cancelProduce(production.id)}>取消</button> : null}
+      {running ? <button type="button" className="md-link-btn" onClick={() => cancelProduce(production.id)}>{t('取消')}</button> : null}
     </div>
   )
 }
@@ -88,22 +89,22 @@ function IdeaCard({ item, live, settings }) {
   const activeId = useDesk(s => s.state.activeStyleId)
   return (
     <div className="md-idea-card">
-      <span className="md-idea-label">灵感 · {fmtDate(item.createdAt)}</span>
-      <AutoText className="md-idea-text" label="灵感" value={item.title} disabled={running} onCommit={title => dispatchOps([{ op: 'update_item', id: item.id, title }], { label: '修改灵感', silent: true })} />
+      <span className="md-idea-label">{t('灵感')} · {fmtDate(item.createdAt)}</span>
+      <AutoText className="md-idea-text" label={t('灵感')} value={item.title} disabled={running} onCommit={title => dispatchOps([{ op: 'update_item', id: item.id, title }], { label: t('修改灵感'), silent: true })} />
       {!running ? (
         <label className="md-style-pick">
-          <span>风格</span>
-          <select aria-label="风格" value={activeId ?? ''} onChange={e => dispatchOps([{ op: 'set_style', id: e.target.value || null }], { label: '切换风格', silent: true })}>
-            <option value="">默认</option>
-            {styles.some(style => !style.preset) ? <optgroup label="我的风格">{styles.filter(style => !style.preset).map(style => <option key={style.id} value={style.id}>{styleIcon(style)} {style.name}</option>)}</optgroup> : null}
-            {STYLE_CATEGORIES.map(name => <optgroup key={name} label={name}>{styles.filter(style => style.preset && style.category === name).map(style => <option key={style.id} value={style.id}>{styleIcon(style)} {style.name}</option>)}</optgroup>)}
+          <span>{t('风格')}</span>
+          <select aria-label={t('风格')} value={activeId ?? ''} onChange={e => dispatchOps([{ op: 'set_style', id: e.target.value || null }], { label: t('切换风格'), silent: true })}>
+            <option value="">{t('默认')}</option>
+            {styles.some(style => !style.preset) ? <optgroup label={t('我的风格')}>{styles.filter(style => !style.preset).map(style => <option key={style.id} value={style.id}>{styleIcon(style)} {style.name}</option>)}</optgroup> : null}
+            {STYLE_CATEGORIES.map(name => <optgroup key={name} label={t(name)}>{styles.filter(style => style.preset && style.category === name).map(style => <option key={style.id} value={style.id}>{styleIcon(style)} {style.name}</option>)}</optgroup>)}
           </select>
         </label>
       ) : null}
-      {!production || !['running', 'done'].includes(production.status) ? <button type="button" className="md-go" onClick={() => runProduce(item.id)}>一键成稿</button> : null}
+      {!production || !['running', 'done'].includes(production.status) ? <button type="button" className="md-go" onClick={() => runProduce(item.id)}>{t('一键成稿')}</button> : null}
       {running ? <ProgressCard production={{ ...production, id: item.id }} live={live} settings={settings} /> : null}
       {production?.status === 'failed' ? <p className="md-idea-hint is-error">{production.error}</p> : null}
-      {!running && !settings?.imageReady ? <p className="md-idea-hint">接入生图模型后，封面和分镜也会画好。<button type="button" onClick={() => setDesk({ settingsOpen: true })}>去接入</button></p> : null}
+      {!running && !settings?.imageReady ? <p className="md-idea-hint">{t('接入生图模型后，封面和分镜也会画好。')}<button type="button" onClick={() => setDesk({ settingsOpen: true })}>{t('去接入')}</button></p> : null}
       {production?.notice ? <p className="md-idea-hint">{production.notice}</p> : null}
     </div>
   )
@@ -116,9 +117,9 @@ function Poster({ production, item, onOpen, onRetry }) {
   const status = production?.cover?.status ?? 'idle'
   return (
     <div className={`md-poster ${src ? '' : 'is-type'}`} data-status={status} onClick={production?.cover?.src ? onOpen : undefined} role={production?.cover?.src ? 'button' : undefined}>
-      {src ? <img key={src} src={src} alt="视频封面" draggable={false} /> : null}
+      {src ? <img key={src} src={src} alt={t('视频封面')} draggable={false} /> : null}
       {text ? <b>{text}</b> : null}
-      {onRetry && ['failed', 'skipped'].includes(status) ? <button type="button" className="md-plate-failed" title={production?.cover?.error} onClick={(event) => { event.stopPropagation(); onRetry() }}><Icon name="refresh" size={12} />{status === 'failed' ? '封面没画成，重画' : '画封面'}</button> : null}
+      {onRetry && ['failed', 'skipped'].includes(status) ? <button type="button" className="md-plate-failed" title={production?.cover?.error} onClick={(event) => { event.stopPropagation(); onRetry() }}><Icon name="refresh" size={12} />{status === 'failed' ? t('封面没画成，重画') : t('画封面')}</button> : null}
     </div>
   )
 }
@@ -144,7 +145,7 @@ function HeroTile({ item, live, onView }) {
   const [saving, setSaving] = React.useState(false)
   const copy = async () => {
     await navigator.clipboard.writeText(`# ${production.title}\n\n${production.article}`)
-    toast('脚本已复制')
+    toast(t('脚本已复制'))
   }
   const save = async () => {
     setSaving(true)
@@ -153,9 +154,9 @@ function HeroTile({ item, live, onView }) {
   }
   const again = () => setDesk({
     dialog: {
-      title: '重新成稿',
-      submitLabel: '重新生成',
-      fields: [{ name: 'note', label: '现在的文章、封面和分镜会被替换，也会再消耗一次模型额度。', type: 'hidden' }],
+      title: t('重新成稿'),
+      submitLabel: t('重新生成'),
+      fields: [{ name: 'note', label: t('现在的文章、封面和分镜会被替换，也会再消耗一次模型额度。'), type: 'hidden' }],
       onSubmit: () => runProduce(item.id),
     },
   })
@@ -163,23 +164,23 @@ function HeroTile({ item, live, onView }) {
   return (
     <section className={`md-tile md-tile-hero ${running ? 'is-running' : ''}`}>
       <div className="md-hero-copy">
-        <AutoText className={`md-hero-title ${production ? '' : 'is-idle'}`} label="标题" value={title} disabled={!done} onCommit={next => dispatchOps([{ op: 'update_production', id: item.id, title: next }], { label: '修改标题', silent: true })} />
+        <AutoText className={`md-hero-title ${production ? '' : 'is-idle'}`} label={t('标题')} value={title} disabled={!done} onCommit={next => dispatchOps([{ op: 'update_production', id: item.id, title: next }], { label: t('修改标题'), silent: true })} />
         <div className="md-hero-stats">
-          {words ? <Stat icon="pen" value={words} unit="字" /> : null}
-          {shots.length ? <Stat icon="film" value={shots.length} unit="镜" /> : null}
-          {seconds ? <Stat icon="clock" value={seconds} unit="秒" /> : null}
-          {pictures ? <Stat icon="image" value={pictures} unit="张图" /> : null}
+          {words ? <Stat icon="pen" value={words} unit={t('字', { s: plural(words, '', 's') })} /> : null}
+          {shots.length ? <Stat icon="film" value={shots.length} unit={t('镜', { s: plural(shots.length, '', 's') })} /> : null}
+          {seconds ? <Stat icon="clock" value={seconds} unit={t('秒')} /> : null}
+          {pictures ? <Stat icon="image" value={pictures} unit={t('张图', { s: plural(pictures, '', 's') })} /> : null}
         </div>
         {done ? (
           <div className="md-hero-actions">
-            <button type="button" className="md-pill is-primary" onClick={copy}><Icon name="copy" size={14} />复制脚本</button>
-            <button type="button" className="md-pill" onClick={save} disabled={saving}><Icon name="save" size={14} />{saving ? '保存中…' : '保存'}</button>
-            <button type="button" className="md-pill" onClick={() => downloadCover({ src: production.cover?.src, text: production.coverText || production.title }, production.title).catch(err => toast(err.message, { error: true }))}><Icon name="image" size={14} />下载封面</button>
+            <button type="button" className="md-pill is-primary" onClick={copy}><Icon name="copy" size={14} />{t('复制脚本')}</button>
+            <button type="button" className="md-pill" onClick={save} disabled={saving}><Icon name="save" size={14} />{saving ? t('保存中…') : t('保存')}</button>
+            <button type="button" className="md-pill" onClick={() => downloadCover({ src: production.cover?.src, text: production.coverText || production.title }, production.title).catch(err => toast(err.message, { error: true }))}><Icon name="image" size={14} />{t('下载封面')}</button>
             <label className="md-pill md-date-pill">
-              <Icon name="calendar" size={14} />{item.scheduledAt ? fmtWhen(item.scheduledAt) : '排期'}
-              <input type="datetime-local" aria-label="排期" value={toLocalInput(item.scheduledAt)} onClick={(event) => { try { event.currentTarget.showPicker() } catch { /* 不支持时用原生交互 */ } }} onChange={(event) => {
+              <Icon name="calendar" size={14} />{item.scheduledAt ? fmtWhen(item.scheduledAt) : t('排期')}
+              <input type="datetime-local" aria-label={t('排期')} value={toLocalInput(item.scheduledAt)} onClick={(event) => { try { event.currentTarget.showPicker() } catch { /* 不支持时用原生交互 */ } }} onChange={(event) => {
                 const when = event.target.value ? new Date(event.target.value).toISOString() : null
-                dispatchOps([{ op: 'schedule_item', id: item.id, scheduledAt: when }], { label: '修改排期', silent: true })
+                dispatchOps([{ op: 'schedule_item', id: item.id, scheduledAt: when }], { label: t('修改排期'), silent: true })
               }} />
             </label>
           </div>
@@ -187,14 +188,14 @@ function HeroTile({ item, live, onView }) {
       </div>
       <div className="md-collage">
         <div className="md-collage-main"><Poster production={production} item={item} onOpen={() => onView('cover')} onRetry={settings?.imageReady && production?.status === 'done' && production.cover ? () => regenAsset(item.id, 'cover') : undefined} /></div>
-        {showFigures ? figures.map((image, i) => <div key={i} className={`md-collage-side is-${i}`}><Plate asset={image} alt={image?.caption ?? `配图 ${i + 1}`} onOpen={image?.src ? () => onView(`image:${i}`) : undefined} onRetry={image && settings?.imageReady && production?.status === 'done' ? () => regenAsset(item.id, `image:${i}`) : undefined} /></div>) : null}
+        {showFigures ? figures.map((image, i) => <div key={i} className={`md-collage-side is-${i}`}><Plate asset={image} alt={image?.caption ?? t('配图 {n}', { n: i + 1 })} onOpen={image?.src ? () => onView(`image:${i}`) : undefined} onRetry={image && settings?.imageReady && production?.status === 'done' ? () => regenAsset(item.id, `image:${i}`) : undefined} /></div>) : null}
       </div>
       <div className="md-hero-corner">
-        {production?.savedAt ? <IconButton icon="folder" label="打开保存的文件夹" onClick={() => revealSaved(item.id)} /> : null}
-        {done ? <IconButton icon="refresh" label="重新成稿" onClick={again} /> : null}
-        <IconButton icon="gear" label="设置" onClick={() => setDesk({ settingsOpen: true })} />
-        <IconButton icon="trash" label="删除这条灵感" onClick={() => {
-          dispatchOps([{ op: 'delete_item', id: item.id }], { label: `删除《${item.title.slice(0, 10)}》` })
+        {production?.savedAt ? <IconButton icon="folder" label={t('打开保存的文件夹')} onClick={() => revealSaved(item.id)} /> : null}
+        {done ? <IconButton icon="refresh" label={t('重新成稿')} onClick={again} /> : null}
+        <IconButton icon="gear" label={t('设置')} onClick={() => setDesk({ settingsOpen: true })} />
+        <IconButton icon="trash" label={t('删除这条灵感')} onClick={() => {
+          dispatchOps([{ op: 'delete_item', id: item.id }], { label: t('删除《{title}》', { title: item.title.slice(0, 10) }) })
           closeItem()
         }} />
       </div>
@@ -254,12 +255,12 @@ function ArticleTile({ item, live, open, onToggle, onView, tileRef }) {
     if (article && scroller.current) scroller.current.scrollTop = 0
   }, [Boolean(article)]) // eslint-disable-line react-hooks/exhaustive-deps
   const save = () => {
-    if (draft !== article) dispatchOps([{ op: 'update_production', id: item.id, article: draft }], { label: '修改文章', silent: true })
+    if (draft !== article) dispatchOps([{ op: 'update_production', id: item.id, article: draft }], { label: t('修改文章'), silent: true })
     setEditing(false)
   }
   const copy = async () => {
     await navigator.clipboard.writeText(article)
-    toast('脚本已复制')
+    toast(t('脚本已复制'))
   }
   // 选中一段，交给助手改
   const onMouseUp = () => {
@@ -277,18 +278,18 @@ function ArticleTile({ item, live, open, onToggle, onView, tileRef }) {
   return (
     <>
       <header className="md-tile-head">
-        <h2>脚本</h2>
+        <h2>{t('脚本')}</h2>
         <span className="md-grow" />
         {article ? (
           <>
-            {editing ? <button type="button" className="md-btn is-small" onClick={save}><Icon name="check" size={13} />完成</button> : <IconButton icon="edit" label="直接修改" onClick={() => setEditing(true)} />}
-            <IconButton icon="copy" label="复制脚本" onClick={copy} />
-            <IconButton icon={open ? 'close' : 'expand'} label={open ? '收起' : '放大阅读'} onClick={onToggle} />
+            {editing ? <button type="button" className="md-btn is-small" onClick={save}><Icon name="check" size={13} />{t('完成')}</button> : <IconButton icon="edit" label={t('直接修改')} onClick={() => setEditing(true)} />}
+            <IconButton icon="copy" label={t('复制脚本')} onClick={copy} />
+            <IconButton icon={open ? 'close' : 'expand'} label={open ? t('收起') : t('放大阅读')} onClick={onToggle} />
           </>
         ) : null}
       </header>
       {editing ? (
-        <textarea className="md-article-edit" aria-label="脚本" value={draft} onChange={e => setDraft(e.target.value)} onBlur={save} />
+        <textarea className="md-article-edit" aria-label={t('脚本')} value={draft} onChange={e => setDraft(e.target.value)} onBlur={save} />
       ) : text ? (
         <div className="md-article-scroll" ref={scroller} onMouseUp={onMouseUp} onScroll={() => setPicked(null)}>
           {open ? <ArticleBody production={production} text={text} onView={onView} /> : <div className="md-prose" dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }} />}
@@ -298,12 +299,12 @@ function ArticleTile({ item, live, open, onToggle, onView, tileRef }) {
       )}
       {picked ? (
         <button type="button" className="md-pick" style={{ left: picked.x, top: picked.y }} onMouseDown={e => e.preventDefault()} onClick={() => {
-          askAbout('这段', picked.text)
+          askAbout(t('这段'), picked.text)
           setPicked(null)
           window.getSelection()?.removeAllRanges()
-        }}><Icon name="chat" size={12} />让助手改这段</button>
+        }}><Icon name="chat" size={12} />{t('让助手改这段')}</button>
       ) : null}
-      {words && streaming ? <span className="md-tile-foot">{words} 字</span> : null}
+      {words && streaming ? <span className="md-tile-foot">{t('{n} 字', { n: words, s: plural(words, '', 's') })}</span> : null}
     </>
   )
 }
@@ -315,21 +316,21 @@ function ShotsTile({ item, live, count, open, onToggle, onView }) {
   // 策划案还在写的时候，分镜说明已经一格一格出现了
   const cells = shots.length ? shots : Array.from({ length: count }, (_, i) => ({ no: i + 1, visual: visuals[i] ? unescapeJson(visuals[i]) : '', status: item.production?.status === 'running' ? 'pending' : 'idle' }))
   const copy = async () => {
-    const table = shots.map((s, i) => `${i + 1}. ${s.shot}｜${s.seconds} 秒\n画面：${s.visual}\n口播：${s.voice}`).join('\n\n')
+    const table = shots.map((s, i) => t('{no}. {shot}｜{sec} 秒\n画面：{visual}\n口播：{voice}', { no: i + 1, shot: t(s.shot), sec: s.seconds, visual: s.visual, voice: s.voice })).join('\n\n')
     await navigator.clipboard.writeText(table)
-    toast('分镜脚本已复制')
+    toast(t('分镜脚本已复制'))
   }
   const total = shots.reduce((sum, shot) => sum + (shot.seconds ?? 0), 0)
   return (
     <>
       <header className="md-tile-head">
-        <h2>分镜头脚本</h2>
-        {total ? <span className="md-tile-meta">约 {total} 秒</span> : null}
+        <h2>{t('分镜头脚本')}</h2>
+        {total ? <span className="md-tile-meta">{t('约 {n} 秒', { n: total })}</span> : null}
         <span className="md-grow" />
         {shots.length ? (
           <>
-            <IconButton icon="copy" label="复制分镜脚本" onClick={copy} />
-            <IconButton icon={open ? 'close' : 'expand'} label={open ? '收起' : '放大'} onClick={onToggle} />
+            <IconButton icon="copy" label={t('复制分镜脚本')} onClick={copy} />
+            <IconButton icon={open ? 'close' : 'expand'} label={open ? t('收起') : t('放大')} onClick={onToggle} />
           </>
         ) : null}
       </header>
@@ -338,7 +339,7 @@ function ShotsTile({ item, live, count, open, onToggle, onView }) {
           <figure key={index} className="md-shot">
             <Plate asset={shot} paper alt={shot.visual} mark={String(shot.no ?? index + 1).padStart(2, '0')} onOpen={shot.src ? () => onView(`shot:${index}`) : undefined} onRetry={imageReady && item.production?.status === 'done' && shot.prompt !== undefined ? () => regenAsset(item.id, `shot:${index}`) : undefined} />
             <figcaption>
-              <span className="md-shot-meta"><b>{String(shot.no ?? index + 1).padStart(2, '0')}</b>{shot.shot ? ` ${shot.shot} · ${shot.seconds} 秒` : ''}</span>
+              <span className="md-shot-meta"><b>{String(shot.no ?? index + 1).padStart(2, '0')}</b>{shot.shot ? ` ${t(shot.shot)} · ${t('{n} 秒', { n: shot.seconds })}` : ''}</span>
               <p>{shot.voice || shot.visual}</p>
             </figcaption>
           </figure>
@@ -350,9 +351,9 @@ function ShotsTile({ item, live, count, open, onToggle, onView }) {
 
 function assetList(production) {
   return [
-    ...(production?.cover?.src || production?.cover ? [{ target: 'cover', asset: production.cover, label: '视频封面' }] : []),
-    ...(production?.images ?? []).map((asset, i) => ({ target: `image:${i}`, asset, label: `配图 ${i + 1}`, note: asset.caption })),
-    ...(production?.shots ?? []).map((asset, i) => ({ target: `shot:${i}`, asset, label: `第 ${i + 1} 镜`, note: [asset.visual, asset.voice].filter(Boolean).join(' · '), paper: true })),
+    ...(production?.cover?.src || production?.cover ? [{ target: 'cover', asset: production.cover, label: t('视频封面') }] : []),
+    ...(production?.images ?? []).map((asset, i) => ({ target: `image:${i}`, asset, label: t('配图 {n}', { n: i + 1 }), note: asset.caption })),
+    ...(production?.shots ?? []).map((asset, i) => ({ target: `shot:${i}`, asset, label: t('第 {n} 镜', { n: i + 1 }), note: [asset.visual, asset.voice].filter(Boolean).join(' · '), paper: true })),
   ]
 }
 
@@ -385,16 +386,16 @@ function Viewer({ item, target, onChange, onClose }) {
       <div className="md-viewer-card" ref={ref}>
         <div className={`md-viewer-image ${current.paper ? 'is-paper' : ''}`}>
           {current.asset.src ? <img key={current.asset.src} src={current.asset.src} alt={current.label} /> : null}
-          {isBusy(current.asset) ? <span className="md-viewer-busy"><span className="md-shimmer">正在重画…</span></span> : null}
+          {isBusy(current.asset) ? <span className="md-viewer-busy"><span className="md-shimmer">{t('正在重画…')}</span></span> : null}
         </div>
         <footer>
           <div className="md-viewer-text"><b>{current.label}</b>{current.note ? <span>{current.note}</span> : null}</div>
-          <IconButton icon="chevL" label="上一张" disabled={!list[index - 1]} onClick={() => list[index - 1] && onChange(list[index - 1].target)} />
-          <IconButton icon="chevR" label="下一张" disabled={!list[index + 1]} onClick={() => list[index + 1] && onChange(list[index + 1].target)} />
-          <button type="button" className="md-pill" onClick={() => { askAbout(current.label); onClose() }}><Icon name="chat" size={13} />让助手改</button>
-          {imageReady ? <button type="button" className="md-pill" disabled={isBusy(current.asset)} onClick={() => regenAsset(item.id, current.target)}><Icon name="refresh" size={13} />重画</button> : null}
-          {current.asset.src ? <a className="md-pill" href={current.asset.src} download><Icon name="save" size={13} />下载</a> : null}
-          <IconButton icon="close" label="关闭" onClick={onClose} />
+          <IconButton icon="chevL" label={t('上一张')} disabled={!list[index - 1]} onClick={() => list[index - 1] && onChange(list[index - 1].target)} />
+          <IconButton icon="chevR" label={t('下一张')} disabled={!list[index + 1]} onClick={() => list[index + 1] && onChange(list[index + 1].target)} />
+          <button type="button" className="md-pill" onClick={() => { askAbout(current.label); onClose() }}><Icon name="chat" size={13} />{t('让助手改')}</button>
+          {imageReady ? <button type="button" className="md-pill" disabled={isBusy(current.asset)} onClick={() => regenAsset(item.id, current.target)}><Icon name="refresh" size={13} />{t('重画')}</button> : null}
+          {current.asset.src ? <a className="md-pill" href={current.asset.src} download><Icon name="save" size={13} />{t('下载')}</a> : null}
+          <IconButton icon="close" label={t('关闭')} onClick={onClose} />
         </footer>
       </div>
     </div>
@@ -525,24 +526,24 @@ export function Studio() {
   React.useEffect(() => { if (id && !item) closeItem() }, [id, item])
   if (!item) return null
   return (
-    <div className={`md-studio ${chatOpen ? 'chat-open' : ''}`} ref={ref} role="dialog" aria-label="灵感">
+    <div className={`md-studio ${chatOpen ? 'chat-open' : ''}`} ref={ref} role="dialog" aria-label={t('灵感')}>
       <div className="md-studio-chat">
         <ChatPanel
           itemId={item.id}
           head={(
             <>
-              <IconButton icon="chevL" label="返回灵感" onClick={closeItem} />
-              <h2>成稿</h2>
+              <IconButton icon="chevL" label={t('返回灵感')} onClick={closeItem} />
+              <h2>{t('成稿')}</h2>
             </>
           )}
           top={<IdeaCard item={item} live={live} settings={settings} />}
-          suggestions={production?.status === 'done' ? DONE_SUGGESTIONS : []}
-          placeholder={running ? '正在成稿，马上就好' : production?.status === 'done' ? '想怎么改，直接说' : '补充点想法，或者直接说要什么'}
+          suggestions={production?.status === 'done' ? DONE_SUGGESTIONS.map(row => t(row)) : []}
+          placeholder={running ? t('正在成稿，马上就好') : production?.status === 'done' ? t('想怎么改，直接说') : t('补充点想法，或者直接说要什么')}
           disabled={running}
           intro={false}
         />
       </div>
-      <button type="button" className="md-chat-toggle" aria-label="打开对话" onClick={() => setDesk(s => ({ studioDock: !s.studioDock }))}><Icon name="chat" size={16} /></button>
+      <button type="button" className="md-chat-toggle" aria-label={t('打开对话')} onClick={() => setDesk(s => ({ studioDock: !s.studioDock }))}><Icon name="chat" size={16} /></button>
       <Sheet key={item.id} item={item} live={live} />
     </div>
   )

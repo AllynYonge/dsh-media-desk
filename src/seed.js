@@ -1,5 +1,6 @@
 // 首次打开时的示例数据。全部带 sample 标记，界面上有一键清空入口。
-import { PRESET_VERSION, migratePresets, seedPresets } from './style-presets.js'
+import { currentLang, normalizeLang } from './i18n.js'
+import { PRESET_VERSION, migratePresets, presetText, seedPresets } from './style-presets.js'
 
 const A = name => `media-desk/assets/${name}`
 
@@ -31,6 +32,35 @@ const RAW = [
   { k: 'image', img: ['blush', 800, 800], t: '给焦虑的新手写一封信', b: '不教方法，只讲第一年真实会发生什么。', tags: ['新手', '共情'], a: 'story', p: ['newbie'], st: 'outline', day: -16, src: '读者来信' },
 ]
 
+/** RAW 的英文文字，顺序和 RAW 一一对应：[标题, 补充, 标签, 来源]。 */
+const RAW_EN = [
+  ['Why your first AI side project never makes a dollar', 'It isn\'t the prompts. It\'s not knowing what the first sellable thing looks like. Break that step into three pictures.', ['AI', 'Monetization'], 'Thought on a walk'],
+  ['Good topics aren\'t dreamed up. They\'re the things you keep complaining about.', 'Log a week of complaints. Anything that comes up three times is a topic.', ['Method'], 'Reading notes'],
+  ['Agents vs. chatbots, explained in 30 seconds', 'One waits for you to ask, the other does the work. Open on a task map that flows like an aurora.', ['AI', 'Explainer'], 'Vertical script'],
+  ['A pricing map for indie developers', 'Forty indie products\' pricing pages laid out on one topographic map, so the highs and lows jump out.', ['Indie hacking', 'Pricing'], 'example.com'],
+  ['Old facades: a design system rewritten by time', 'Every window is a patch from whoever came later. A perfect way to talk about tech debt.', ['Design', 'Metaphor'], 'Street photo'],
+  ['A 10-minute checklist before you hit publish', 'Does the title have a verb? Are the first three seconds plain English? Is the cover readable on a phone? Does the ending ask for just one thing?', ['Workflow'], 'My own checklist'],
+  ['Slow writing: growing one thought into a long-form post', 'A week of not chasing trends: 200 words a day, stitched into one piece on day seven.', ['Writing'], 'Cover experiment'],
+  ['The best tools end up forgotten.', 'A product essay about the things you stop noticing.', ['Product'], 'Quick note'],
+  ['Tidal working: two hours deep, one hour ashore', 'Attention as a tide. Open with five seconds of waves and one question.', ['Productivity'], 'Storyboard sketch'],
+  ['What landscape painting knows about visual hierarchy', 'Sharp foreground, misty distance. Chinese ink painters worked out interface hierarchy centuries ago.', ['Design', 'Culture'], 'Exhibition notes'],
+  ['Ten charts worth a screenshot', 'Collect restrained, beautiful charts and break down what each one chose to leave out.', ['Data', 'Design'], 'example.com'],
+  ['Day 300 of a one-person company: three pivots in the desert', 'The revenue curve, the mistakes, and the afternoon I almost quit.', ['Solo business', 'Retrospective'], 'Retro draft'],
+  ['The 5 questions people ask most in the comments', '1. Can I do this without a tech background? 2. What does it cost per month? 3. Which model? 4. Is my data safe? 5. How long until I get the hang of it?', ['Audience insight'], 'Comments'],
+  ['Cover color test: why bold stripes get more clicks', 'Three A/B rounds. Stripes won on clicks but didn\'t keep people watching any longer.', ['Covers', 'Experiment'], 'Test log'],
+  ['You don\'t lack ideas. You lack a place to keep them.', 'Could be the opening line for this desk itself.', ['Method'], 'Quick note'],
+  ['The first product I finished on a night bus', 'City lights in the background, told in first person. Feeling first, tech kept light.', ['Story', 'Indie hacking'], 'Vlog'],
+  ['The nerve to leave space: three products that got better after cutting half their features', 'Deleting is a design decision too. Make the case with real examples.', ['Product', 'Design'], 'Product notes'],
+  ['The growth staircase: the real stages from 0 to 10k followers', 'Each step needs different work. Don\'t use a 100k playbook to win your first thousand.', ['Growth'], 'example.com'],
+  ['An orange on the desk: an opening about attention', 'Stare at an orange for one minute, then ask the viewer: when did you last focus like that?', ['Openings', 'Productivity'], 'Quick idea'],
+  ['The feel of type: why embossed letters make you want to touch the screen', 'From letterpress to the comeback of skeuomorphism in interfaces.', ['Design', 'Typography'], 'Type specimen'],
+  ['Eight seconds of ink: a transition library', 'Ink spreading in water works as a chapter transition. Package it as a set.', ['Footage', 'Editing'], 'Footage'],
+  ['Just one thing this week', 'Get from idea to finished piece in under 24 hours, and track how many posts that adds up to over a week.', ['Experiment', 'Workflow'], 'Weekly plan'],
+  ['Gradients are back: why every AI product looks the same', 'When every product uses the same gradient, where does the difference go?', ['Design', 'AI'], 'Trend watch'],
+  ['City lights at night: 6 moods for long-form images', 'A mood board of images that won\'t look like everyone else\'s.', ['Footage'], 'Mood board'],
+  ['A letter to the anxious beginner', 'No tactics. Just what actually happens in your first year.', ['Beginners', 'Empathy'], 'Reader letter'],
+]
+
 const ANGLES = [
   ['case', '真实案例', '一个人做了什么，结果如何', '从一个具体的人和具体的数字切入，再抽象方法。'],
   ['opinion', '反常识观点', '大家都说 A，但其实是 B', '先摆出普遍看法，再用证据推翻它，结尾留下讨论点。'],
@@ -42,6 +72,17 @@ const ANGLES = [
   ['qa', '评论区回答', '你们问得最多的问题', '直接回答真实问题，把读者的原话放进标题。'],
 ]
 
+const ANGLES_EN = {
+  case: ['Real case', 'What one person did, and how it went', 'Start from a specific person and specific numbers, then pull out the method.'],
+  opinion: ['Contrarian take', 'Everyone says A. It\'s actually B.', 'Lay out the common view, knock it down with evidence, and end on a question worth discussing.'],
+  explain: ['30-second explainer', 'One plain sentence that makes a concept click', 'One analogy, no jargon, so an outsider could explain it back.'],
+  data: ['Data experiment', 'I tested it N times. Here\'s what happened.', 'Give the sample size, the process and the counterintuitive result, plus a way to reproduce it.'],
+  analogy: ['Cross-domain analogy', 'This is really the same thing as X', 'Re-explain an old problem with a picture from another field.'],
+  list: ['Save-worthy list', 'Save this, you\'ll need it', 'Clear structure people can follow as is. Built to be saved and shared.'],
+  story: ['First-person story', 'The day I almost quit', 'A scene, a turn and real feeling. Keep the tech light.'],
+  qa: ['Answering comments', 'The questions you ask most', 'Answer real questions directly and put readers\' own words in the title.'],
+}
+
 const PEOPLE = [
   ['newbie', '想入门的小林', '目标读者', '25–32 岁，上班族，想用 AI 提效或做副业，但怕被术语吓退。', ['怕术语', '想要第一步', '刷短视频'], 0],
   ['creator', '自媒体同行阿澈', '目标读者', '已有数千粉，关心选题、封面和流程，愿意为方法论付费。', ['方法控', '爱收藏', '看数据'], 1],
@@ -49,16 +90,33 @@ const PEOPLE = [
   ['editor', '剪辑搭子小满', '协作者', '负责短视频剪辑和封面，周二、周四有空档。', ['剪辑', '封面'], 3],
 ]
 
+const PEOPLE_EN = {
+  newbie: ['Lena, curious beginner', 'Target reader', '25 to 32, office job, wants AI to save time or start a side project, but gets scared off by jargon.', ['Jargon-shy', 'Wants a first step', 'Watches short videos']],
+  creator: ['Alex, fellow creator', 'Target reader', 'A few thousand followers. Cares about topics, covers and workflow, and will pay for a good method.', ['Method nerd', 'Saves everything', 'Checks the numbers']],
+  indie: ['Sam, indie developer', 'Target reader', 'Can code, but short on growth and pricing experience. Loves honest revenue breakdowns.', ['Wants the real story', 'Hates fluff', 'Long-form reader']],
+  editor: ['Maya, editing partner', 'Collaborator', 'Handles short-video edits and covers. Free on Tuesdays and Thursdays.', ['Editing', 'Covers']],
+}
+
 const SKILLS = [
   ['开头先给数字', '开头 50 字内出现一个具体数字或结果，不做背景铺垫。', '示例：来自 3 篇高阅读内容', 'active', 0.82],
   ['一篇只讲一件事', '删掉所有不服务于核心观点的段落，宁可拆成系列。', '示例：你在 2 篇草稿里都这样改过', 'active', 0.74],
   ['标题里写读者原话', '从评论区摘原句放进标题，比自己概括的点击更高。', '示例：待更多数据确认', 'proposed', 0.51],
 ]
 
+const SKILLS_EN = [
+  ['Lead with a number', 'Put a concrete number or result in the first 50 words. No warm-up.', 'Example: from 3 high-performing posts'],
+  ['One piece, one point', 'Cut every paragraph that doesn\'t serve the main point. Split it into a series if you have to.', 'Example: you made this edit in 2 drafts'],
+  ['Use readers\' words in the title', 'Lift exact phrases from the comments into the title. They get more clicks than your own summary.', 'Example: needs more data to confirm'],
+]
+
 export function migrateState(state) {
   if (state.activeStyleId === undefined) state.activeStyleId = null
+  // 加入英文之前的数据都是中文示例
+  if (state.sampleLang === undefined) state.sampleLang = 'zh'
   return migratePresets(state)
 }
+
+const SAMPLE_HANDLE = { zh: '示例账号', en: 'Sample account' }
 
 const ACCOUNTS = [
   ['公众号', '示例账号', 12840],
@@ -77,9 +135,10 @@ function shift(base, days, hour = 10, minute = 0) {
 /**
  * 以 now 为基准生成示例状态，让日历和排期始终落在当前日期附近。
  * @param {Date} now - 基准时间。
+ * @param {'zh'|'en'} [lang] - 示例用哪种语言写，默认跟随当前请求。
  * @returns {object} 完整状态。
  */
-export function buildSeed(now) {
+export function buildSeed(now, lang = currentLang()) {
   const items = RAW.map((row, index) => {
     const id = `seed_${index + 1}`
     const media = row.img
@@ -127,9 +186,10 @@ export function buildSeed(now) {
     }
   }
 
-  return {
+  const state = {
     version: 1,
     sampleCleared: false,
+    sampleLang: 'zh',
     items,
     people: PEOPLE.map(([id, name, role, note, traits, tone]) => ({ id, name, role, note, traits, tone, sample: true })),
     angles: ANGLES.map(([id, name, hook, prompt]) => ({ id, name, hook, prompt, sample: true })),
@@ -141,4 +201,78 @@ export function buildSeed(now) {
     activeStyleId: null,
     chat: [],
   }
+  return normalizeLang(lang) === 'en' ? localizeSamples(state, 'en') : state
+}
+
+// 示例文字的两种语言版本：集合 → id → 字段。只有这些字段会随界面语言切换。
+function textTables(lang) {
+  const en = lang === 'en'
+  return {
+    items: Object.fromEntries(RAW.map((row, index) => {
+      const [title, body, tags, source] = en ? RAW_EN[index] : [row.t, row.b, row.tags, row.src]
+      return [`seed_${index + 1}`, { title, body, tags, source }]
+    })),
+    people: Object.fromEntries(PEOPLE.map(([id, ...zh]) => {
+      const [name, role, note, traits] = en ? PEOPLE_EN[id] : zh
+      return [id, { name, role, note, traits }]
+    })),
+    angles: Object.fromEntries(ANGLES.map(([id, ...zh]) => {
+      const [name, hook, prompt] = en ? ANGLES_EN[id] : zh
+      return [id, { name, hook, prompt }]
+    })),
+    skills: Object.fromEntries(SKILLS.map(([name, rule, evidence], index) => [`seed_s_${index + 1}`, en ? { name: SKILLS_EN[index][0], rule: SKILLS_EN[index][1], evidence: SKILLS_EN[index][2], source: 'Sample' } : { name, rule, evidence, source: '示例' }])),
+    accounts: Object.fromEntries(ACCOUNTS.map((row, index) => [`seed_ac_${index + 1}`, { handle: SAMPLE_HANDLE[lang] }])),
+  }
+}
+
+const TABLES = { zh: textTables('zh'), en: textTables('en') }
+
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+
+/** 字段还是某种语言的原文时才换成目标语言，用户改过的不动。返回是否改了。 */
+function swapFields(row, original, target) {
+  let changed = false
+  for (const [field, value] of Object.entries(target)) {
+    if (same(row[field], value)) continue
+    if (!original.some(text => text && same(row[field], text[field]))) continue
+    row[field] = structuredClone(value)
+    changed = true
+  }
+  return changed
+}
+
+/**
+ * 界面语言和示例数据的语言不一致时需要换一遍。
+ * @param {object} state - 当前状态。
+ * @param {string} lang - 界面语言。
+ * @returns {boolean} 是否需要调用 localizeSamples。
+ */
+export function samplesNeedLocale(state, lang) {
+  return (state?.sampleLang ?? 'zh') !== normalizeLang(lang)
+}
+
+/**
+ * 把还是示例的行（sample: true）和没改过的内置预设换成另一种语言。
+ * 只动文字字段，状态、排期、成稿、数据和用户自己的内容都不碰；按 id 对应，可以重复调用。
+ * @param {object} state - 会被就地修改的状态。
+ * @param {string} lang - 目标语言。
+ * @returns {object} 同一个 state。
+ */
+export function localizeSamples(state, lang) {
+  const target = normalizeLang(lang)
+  if (!state.sampleCleared) {
+    for (const key of ['items', 'people', 'angles', 'skills', 'accounts']) {
+      for (const row of state[key] ?? []) {
+        const to = row?.sample ? TABLES[target][key][row.id] : null
+        if (to) swapFields(row, [TABLES.zh[key][row.id], TABLES.en[key][row.id]], to)
+      }
+    }
+  }
+  for (const row of state.styles ?? []) {
+    if (!row?.preset) continue
+    const to = presetText(row.id, target)
+    if (to) swapFields(row, [presetText(row.id, 'zh'), presetText(row.id, 'en')], to)
+  }
+  state.sampleLang = target
+  return state
 }

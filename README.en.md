@@ -31,7 +31,7 @@
 
 A page in the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) sidebar. It opens on a wall of ideas, one line each. Open any of them and one click produces a spoken script, a title, a video cover, figures and a line-art storyboard; chat on the left and the right side changes. Drag the finished piece onto the calendar, publish, come back for the numbers.
 
-Five pages: **Ideas · Content · Schedule · Insights · Styles**. The interface is in Chinese.
+Five pages: **Ideas · Content · Schedule · Insights · Styles**. The interface comes in English and Chinese and follows the DeepSeek Harness language by default; you can pin one in the plugin settings. In English, scripts, titles and storyboards are written in English too. The web version also works in a phone browser.
 
 <br>
 
@@ -144,7 +144,7 @@ Five pages: **Ideas · Content · Schedule · Insights · Styles**. The interfac
 <a id="three-steps"></a>
 ## Three steps
 
-Requires DeepSeek Harness `0.2.1-rc.5` or later in the `0.2.x` line.
+Requires DeepSeek Harness `0.2.1-rc.5` or later in the `0.2.x` line; tested on `0.2.2-rc.1`, desktop and web.
 
 **1. Install.** In the DeepSeek Harness desktop app, go to Plugins → Add plugin, enter the package name `dsh-media-desk` and install.
 
@@ -160,7 +160,7 @@ dsh plugin --profile web add dsh-media-desk
 
 **2. Update.** When a new version is out, update it from the Plugins page or run the command again. For an offline install, download `dsh-media-desk-*.tgz` from [Releases](https://github.com/woniuniuniu/dsh-media-desk/releases/latest) and use `"file:$PWD/dsh-media-desk-VERSION.tgz"` instead of the package name.
 
-**3. Open.** "自媒体工作台" appears in the sidebar. The first launch shows sample data so you can see every page; click "示例数据 · 清空" (clear samples) in the top right to start with your own.
+**3. Open.** "Media Desk" (自媒体工作台) appears in the sidebar. The first launch shows sample data so you can see every page; click "Clear samples" in the top right to start with your own.
 
 To uninstall, replace `add` with `remove dsh-media-desk`. Your content stays in `~/.dsh/media-desk/`.
 
@@ -177,13 +177,13 @@ The plugin is free and ships with no credentials. Wherever a model is involved, 
 | **Cover, figures, storyboard** | Your own image API key, entered in the plugin settings | Script and storyboard text still work; the cover becomes typographic |
 | **Account import** (optional) | The third-party service Monid, billed per call: about $0.02 per Xiaohongshu account, under a cent for Douyin and Bilibili | Enter numbers by hand, or paste posts to distill a style |
 
-Images work with any service compatible with the OpenAI images API (`POST {endpoint}/images/generations`). Settings come pre-filled with OpenAI, xAI, Volcengine Ark, Zhipu and SiliconFlow, or use a custom endpoint. Click "试画一张" (draw one) to test. One production makes 9 images by default, adjustable. The key lives only in the local `settings.json` (mode 600), never in content data, never sent to the text model.
+Images work with any service compatible with the OpenAI images API (`POST {endpoint}/images/generations`). Settings come pre-filled with OpenAI, xAI, Volcengine Ark, Zhipu and SiliconFlow, or use a custom endpoint. Click "Test draw" to check it. One production makes 9 images by default, adjustable. The key lives only in the local `settings.json` (mode 600), never in content data, never sent to the text model.
 
 <br>
 
 ## Importing your own account
 
-In Styles or Insights, click "导入账号" (import account) and paste your own Xiaohongshu, Douyin or Bilibili profile URL. Your latest 20 public posts and their engagement go into content and insights, and your style is distilled from them. Importing again only updates the numbers.
+In Styles or Insights, click "Import account" and paste your own Xiaohongshu, Douyin or Bilibili profile URL. Your latest 20 public posts and their engagement go into content and insights, and your style is distilled from them. Importing again only updates the numbers.
 
 First time, connect [Monid](https://monid.ai) in three steps:
 

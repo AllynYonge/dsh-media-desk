@@ -1,3 +1,7 @@
+import { EN } from './en/index.js'
+import { lang, t } from './i18n.js'
+
+// 这些表只放中文原文，显示时再用 t() 翻译
 export const STATUSES = ['idea', 'outline', 'draft', 'ready', 'published']
 export const STATUS_LABEL = { idea: '灵感', outline: '大纲', draft: '草稿', ready: '待发布', published: '已发布' }
 export const KIND_LABEL = { image: '图片', video: '视频', web: '网页', quote: '金句', note: '笔记' }
@@ -65,23 +69,26 @@ export function fmtTime(iso) {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
 export function fmtDate(iso) {
   const d = new Date(iso)
+  if (lang() === 'en') return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`
   return `${d.getMonth() + 1}月${d.getDate()}日`
 }
 
 export function fmtWhen(iso) {
-  if (!iso) return '未排期'
+  if (!iso) return t('未排期')
   return `${fmtDate(iso)} ${fmtTime(iso)}`
 }
 
 export function relativeDay(iso) {
   const diff = Math.round((new Date(dayKey(iso)) - new Date(dayKey(new Date()))) / 86400000)
-  if (diff === 0) return '今天'
-  if (diff === 1) return '明天'
-  if (diff === 2) return '后天'
-  if (diff === -1) return '昨天'
-  if (diff < 0 && diff > -8) return `${-diff}天前`
+  if (diff === 0) return t('今天')
+  if (diff === 1) return t('明天')
+  if (diff === 2) return t('后天')
+  if (diff === -1) return t('昨天')
+  if (diff < 0 && diff > -8) return t('{n}天前', { n: -diff })
   return fmtDate(iso)
 }
 
@@ -93,8 +100,21 @@ export function toLocalInput(iso) {
 
 export function compact(n) {
   if (n === null || n === undefined) return '—'
+  if (lang() === 'en') {
+    // 英文用 K / M，去掉多余的 .0
+    const short = (value, suffix) => `${value.toFixed(value >= 100 ? 0 : 1).replace(/\.0$/, '')}${suffix}`
+    if (n >= 999500) return short(n / 1000000, 'M')
+    if (n >= 10000) return short(n / 1000, 'K')
+    return n.toLocaleString('en-US')
+  }
   if (n >= 10000) return `${(n / 10000).toFixed(n >= 100000 ? 0 : 1)}万`
   return n.toLocaleString()
+}
+
+/** 数量后面的单位。英文在 n 为 1 时用单数，词典里 key 写成「单位|1」。 */
+export function unit(n, zh) {
+  if (lang() === 'en' && n === 1 && EN[`${zh}|1`] !== undefined) return EN[`${zh}|1`]
+  return t(zh)
 }
 
 /** 连续记录天数：今天还没记时，从昨天往回算，不会让今天一早就断掉。 */

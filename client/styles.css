@@ -789,3 +789,19 @@ button.md-receipt:hover { transform: translateX(2px); }
 .md-poster .md-plate-failed { z-index: 3; }
 .md-root button.md-plate-failed { cursor: pointer; }
 .md-root button.md-plate-failed:hover { color: var(--ink); }
+
+/* 手机宽度：DSH 0.2.2 起网页版可以在手机上打开。顶栏导航可横向滑动，次要按钮收起，灵感墙标题缩到屏幕宽度内 */
+.md-root { container: md-root / inline-size; }
+@container md-root (max-width: 560px) {
+  .md-topbar { gap: 6px; padding: 10px 10px 10px max(10px, var(--dsh-frame-leading-clearance, 0px)); }
+  .md-nav { flex: 0 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .md-nav::-webkit-scrollbar { display: none; }
+  .md-nav button { padding: 0 10px; }
+  .md-sample { display: none; }
+  .md-open-dock { width: 36px; padding: 0; justify-content: center; font-size: 0; gap: 0; }
+  .md-open-dock svg { flex: none; }
+  .md-hero-anchor { width: min(520px, calc(100cqw - 40px)); }
+  .md-root .md-hero-line { font-size: 24px; line-height: 34px; }
+  .md-hero-input { height: 44px; }
+  .md-board-page { padding-top: 58px; }
+}

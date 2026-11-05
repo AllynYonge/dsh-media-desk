@@ -1,6 +1,7 @@
 // 抓取网页和个人主页的公开信息。只读公开 HTML，不登录，也不绕过平台限制。
 import { lookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
+import { tr } from './i18n.js'
 
 const MAX_BYTES = 1_500_000
 const TIMEOUT_MS = 8000
@@ -26,11 +27,11 @@ function isPrivateAddress(address) {
 /** 粘贴的链接可能来自任何地方，不能让它访问本机或内网服务。 */
 export async function assertPublicUrl(raw) {
   const url = new URL(raw)
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('只支持 http 和 https 链接')
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error(tr('只支持 http 和 https 链接'))
   const host = url.hostname.replace(/^\[|\]$/g, '')
-  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) throw new Error('不能抓取本机地址')
+  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) throw new Error(tr('不能抓取本机地址'))
   const records = isIP(host) ? [{ address: host }] : await lookup(host, { all: true })
-  if (records.some(record => isPrivateAddress(record.address))) throw new Error('不能抓取内网地址')
+  if (records.some(record => isPrivateAddress(record.address))) throw new Error(tr('不能抓取内网地址'))
   return url
 }
 
@@ -75,14 +76,14 @@ async function fetchPublic(raw, fetchImpl) {
     }
     return { res, url }
   }
-  throw new Error('跳转次数过多')
+  throw new Error(tr('跳转次数过多'))
 }
 
 async function readHtml(raw, fetchImpl) {
   const { res, url } = await fetchPublic(raw, fetchImpl)
-  if (!res.ok) throw new Error(`页面返回 ${res.status}，可能需要登录或被平台拦截`)
+  if (!res.ok) throw new Error(tr('页面返回 {status}，可能需要登录或被平台拦截', { status: res.status }))
   const type = res.headers.get('content-type') || ''
-  if (!/html|xml/i.test(type)) throw new Error(`这不是网页（${type || '未知类型'}）`)
+  if (!/html|xml/i.test(type)) throw new Error(tr('这不是网页（{type}）', { type: type || tr('未知类型') }))
   const reader = res.body.getReader()
   const chunks = []
   let size = 0

@@ -1,6 +1,7 @@
 // 通用小组件：图标、按钮、对话框、提示。
 import React from 'react'
 import { setDesk, undo, useDesk } from './desk.js'
+import { t } from './i18n.js'
 
 const PATHS = {
   plus: 'M12 5v14M5 12h14',
@@ -96,7 +97,7 @@ export function Dialog({ title, onClose, children, width = 440 }) {
       <div className="md-dialog" role="dialog" aria-modal="true" aria-label={title} style={{ width }} ref={ref}>
         <div className="md-dialog-head">
           <h2>{title}</h2>
-          <IconButton icon="close" label="关闭" onClick={onClose} />
+          <IconButton icon="close" label={t('关闭')} onClick={onClose} />
         </div>
         {children}
       </div>
@@ -137,10 +138,10 @@ export function FormDialog() {
           </label>
         ))}
         <div className="md-form-foot">
-          {dialog.onDelete ? <button type="button" className="md-btn is-danger" onClick={() => { dialog.onDelete(); close() }}>删除</button> : null}
+          {dialog.onDelete ? <button type="button" className="md-btn is-danger" onClick={() => { dialog.onDelete(); close() }}>{t('删除')}</button> : null}
           <span style={{ flex: 1 }} />
-          <button type="button" className="md-btn" onClick={close}>取消</button>
-          <button type="submit" className="md-btn is-primary">{dialog.submitLabel ?? '保存'}</button>
+          <button type="button" className="md-btn" onClick={close}>{t('取消')}</button>
+          <button type="submit" className="md-btn is-primary">{dialog.submitLabel ?? t('保存')}</button>
         </div>
       </form>
     </Dialog>
@@ -154,7 +155,7 @@ export function Toast() {
     <div key={toast.key} className={`md-toast ${toast.error ? 'is-error' : ''}`} role={toast.error ? 'alert' : 'status'}>
       {toast.undo ? <Icon name="check" size={14} /> : null}
       <span>{toast.text}</span>
-      {toast.undo ? <button type="button" onClick={undo}>撤销</button> : null}
+      {toast.undo ? <button type="button" onClick={undo}>{t('撤销')}</button> : null}
     </div>
   )
 }

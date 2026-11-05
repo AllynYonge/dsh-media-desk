@@ -1,5 +1,6 @@
 // 开放式生图接入：任何兼容 OpenAI Images API 的服务都能用，由用户自己填地址、模型和密钥。
 import { assertPublicUrl } from './harvest.js'
+import { tr } from './i18n.js'
 
 const TIMEOUT_MS = 300_000
 const MAX_IMAGE_BYTES = 40_000_000
@@ -18,10 +19,10 @@ function redact(text, key) {
 }
 
 function explain(status, detail) {
-  if (status === 401 || status === 403) return `密钥无效或没有这个模型的权限（${status}）`
-  if (status === 404) return '接口地址或模型不对（404）'
-  if (status === 429) return '请求太频繁或额度不足（429）'
-  return detail ? `生图服务返回 ${status}：${detail}` : `生图服务返回 ${status}`
+  if (status === 401 || status === 403) return tr('密钥无效或没有这个模型的权限（{status}）', { status })
+  if (status === 404) return tr('接口地址或模型不对（404）')
+  if (status === 429) return tr('请求太频繁或额度不足（429）')
+  return detail ? tr('生图服务返回 {status}：{detail}', { status, detail }) : tr('生图服务返回 {status}', { status })
 }
 
 async function requestOnce(image, prompt, fetchImpl, signal) {
@@ -51,10 +52,10 @@ async function requestOnce(image, prompt, fetchImpl, signal) {
   if (entry?.url) {
     const url = await assertPublicUrl(entry.url)
     const download = await fetchImpl(url, { signal })
-    if (!download.ok) throw new Error(`下载图片失败（${download.status}）`)
+    if (!download.ok) throw new Error(tr('下载图片失败（{status}）', { status: download.status }))
     return { buffer: Buffer.from(await download.arrayBuffer()), revisedPrompt: entry.revised_prompt }
   }
-  const error = new Error('生图服务没有返回图片')
+  const error = new Error(tr('生图服务没有返回图片'))
   error.retryable = !data
   throw error
 }
@@ -73,9 +74,9 @@ export async function generateImage(image, prompt, { fetchImpl = fetch, signal }
     const combined = signal ? AbortSignal.any([signal, timeout]) : timeout
     try {
       const { buffer } = await requestOnce(image, prompt, fetchImpl, combined)
-      if (buffer.length > MAX_IMAGE_BYTES) throw new Error('图片太大')
+      if (buffer.length > MAX_IMAGE_BYTES) throw new Error(tr('图片太大'))
       const ext = extensionOf(buffer)
-      if (!ext) throw new Error('返回的内容不是图片')
+      if (!ext) throw new Error(tr('返回的内容不是图片'))
       return { buffer, ext }
     } catch (err) {
       if (signal?.aborted) throw err
@@ -84,7 +85,7 @@ export async function generateImage(image, prompt, { fetchImpl = fetch, signal }
       if (!err.retryable && !network) break
     }
   }
-  const message = lastError.name === 'TimeoutError' ? '生图超时，可以重试' : lastError.name === 'TypeError' ? `连不上生图服务：${redact(lastError.cause?.code ?? lastError.message, image.apiKey)}` : redact(lastError.message, image.apiKey)
+  const message = lastError.name === 'TimeoutError' ? tr('生图超时，可以重试') : lastError.name === 'TypeError' ? tr('连不上生图服务：{reason}', { reason: redact(lastError.cause?.code ?? lastError.message, image.apiKey) }) : redact(lastError.message, image.apiKey)
   throw new Error(message)
 }
 

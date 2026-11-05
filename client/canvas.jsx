@@ -2,6 +2,7 @@
 import React from 'react'
 import { Card, openCapture } from './card.jsx'
 import { captureFiles, captureUrl, dispatchOps, openItem, setDesk, useDesk } from './desk.js'
+import { plural, t } from './i18n.js'
 import { Icon, IconButton, Segmented } from './ui.jsx'
 import { MiniStamps } from './stamps.jsx'
 import { cardSize, scatterLayout } from './layout.js'
@@ -83,25 +84,25 @@ function Hero() {
     if (!value) return
     setText('')
     if (/^https?:\/\//i.test(value)) await captureUrl(value)
-    else await dispatchOps([{ op: 'add_item', kind: 'note', title: value.split(/[。！？\n]/)[0].slice(0, 60), body: value.length > 60 ? value : '' }], { label: '记下灵感' })
+    else await dispatchOps([{ op: 'add_item', kind: 'note', title: value.split(/[。！？\n]|[.!?](?=\s|$)/)[0].slice(0, 60), body: value.length > 60 ? value : '' }], { label: t('记下灵感') })
   }
   const now = new Date()
   return (
     <section className="md-hero" onPointerDown={e => e.stopPropagation()}>
-      <p className="md-hero-date">{now.getFullYear()} · {now.getMonth() + 1} 月 {now.getDate()} 日 · 周{'日一二三四五六'[now.getDay()]}</p>
+      <p className="md-hero-date">{now.getFullYear()} · {t('{m} 月 {d} 日', { m: now.getMonth() + 1, d: now.getDate(), mon: now.toLocaleString('en-US', { month: 'short' }) })} · {t(WEEKDAYS[now.getDay()])}</p>
       <h1 className="md-hero-line">
-        还有 <Inline src={pic(pending)} /> <b>{pending.length} 个灵感</b> 等你成稿，
+        {t('还有')} <Inline src={pic(pending)} /> <b>{t('{n} 个灵感', { n: pending.length, s: plural(pending.length, '', 's') })}</b> {t('等你成稿，')}
         <br />
-        <Inline src={pic(upcoming)} /> <b>{upcoming.length} 条内容</b> 排在本周，
+        <Inline src={pic(upcoming)} /> <b>{t('{n} 条内容', { n: upcoming.length, s: plural(upcoming.length, '', 's') })}</b> {t('排在本周，')}
         <br />
-        你已经连续记录 <b className="md-hero-streak">{streak} 天</b>。
+        {t('你已经连续记录')} <b className="md-hero-streak">{t('{n} 天', { n: streak, s: plural(streak, '', 's') })}</b>{t('。')}
       </h1>
       <form className="md-hero-input" onSubmit={submit}>
         <Icon name="spark" size={16} />
-        <input value={text} onChange={e => setText(e.target.value)} placeholder="记下一个灵感，或贴一个链接" aria-label="记下灵感" />
-        <button type="submit" className="md-send" aria-label="记下" disabled={!text.trim()}><Icon name="send" size={15} /></button>
+        <input value={text} onChange={e => setText(e.target.value)} placeholder={t('记下一个灵感，或贴一个链接')} aria-label={t('记下灵感')} />
+        <button type="submit" className="md-send" aria-label={t('记下')} disabled={!text.trim()}><Icon name="send" size={15} /></button>
       </form>
-      {roots.length === 0 ? <p className="md-hero-hint">写一句话、贴一个链接，或者把图片和视频拖进来。右上角的助手也能替你记。</p> : null}
+      {roots.length === 0 ? <p className="md-hero-hint">{t('写一句话、贴一个链接，或者把图片和视频拖进来。右上角的助手也能替你记。')}</p> : null}
       <MiniStamps />
     </section>
   )
@@ -348,9 +349,9 @@ function Scatter() {
         {shown.map((item, index) => <Node key={item.id} item={item} pos={posOf(item)} index={index} entered={entered} onOpen={openCard} />)}
       </div>
       <div className="md-toolrow md-toolrow-right" onPointerDown={e => e.stopPropagation()}>
-        <IconButton icon="zoomOut" label="缩小" onClick={() => zoomAt(0.8, ...center(), false)} />
-        <IconButton icon="target" label="回到中心" onClick={() => flyTo(frameHome())} />
-        <IconButton icon="zoomIn" label="放大" onClick={() => zoomAt(1.25, ...center(), false)} />
+        <IconButton icon="zoomOut" label={t('缩小')} onClick={() => zoomAt(0.8, ...center(), false)} />
+        <IconButton icon="target" label={t('回到中心')} onClick={() => flyTo(frameHome())} />
+        <IconButton icon="zoomIn" label={t('放大')} onClick={() => zoomAt(1.25, ...center(), false)} />
       </div>
     </div>
   )
@@ -377,6 +378,8 @@ function Feed() {
   )
 }
 
+const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
 const KIND_OPTIONS = [{ value: 'all', label: '全部' }, { value: 'image', label: '图片' }, { value: 'video', label: '视频' }, { value: 'web', label: '网页' }, { value: 'quote', label: '金句' }, { value: 'note', label: '笔记' }]
 
 export function HomeView() {
@@ -385,21 +388,21 @@ export function HomeView() {
   return (
     <div className="md-home">
       {mode === 'feed' ? <Feed /> : <Scatter />}
-      <div className="md-dockbar" role="toolbar" aria-label="灵感视图">
+      <div className="md-dockbar" role="toolbar" aria-label={t('灵感视图')}>
         <Segmented
-          label="展示方式"
+          label={t('展示方式')}
           value={mode}
           onChange={value => setDesk({ mode: value })}
-          options={[{ value: 'scatter', icon: 'scatter', title: '散落' }, { value: 'feed', icon: 'wall', title: '信息流' }]}
+          options={[{ value: 'scatter', icon: 'scatter', title: t('散落') }, { value: 'feed', icon: 'wall', title: t('信息流') }]}
         />
         <span className="md-dockbar-sep" />
         <div className="md-chips">
           {KIND_OPTIONS.map(option => (
-            <button type="button" key={option.value} className={kind === option.value ? 'is-on' : ''} onClick={() => setDesk({ kindFilter: option.value })}>{option.label}</button>
+            <button type="button" key={option.value} className={kind === option.value ? 'is-on' : ''} onClick={() => setDesk({ kindFilter: option.value })}>{t(option.label)}</button>
           ))}
         </div>
         <span className="md-dockbar-sep" />
-        <button type="button" className="md-round is-primary" aria-label="记下灵感" title="记下灵感" onClick={() => openCapture('text')}><Icon name="plus" size={18} /></button>
+        <button type="button" className="md-round is-primary" aria-label={t('记下灵感')} title={t('记下灵感')} onClick={() => openCapture('text')}><Icon name="plus" size={18} /></button>
       </div>
     </div>
   )

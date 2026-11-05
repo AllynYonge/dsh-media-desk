@@ -1,6 +1,7 @@
 // 工作台设置。密钥和内容数据分开存放，文件权限 600，也不会返回给浏览器。
 import { chmod, readFile, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { tr } from './i18n.js'
 
 const DEFAULTS = {
   image: { baseUrl: '', model: '', apiKey: '', size: '1536x1024', quality: '', extra: '' },
@@ -8,6 +9,7 @@ const DEFAULTS = {
   exportDir: '',
   imageCount: 2,
   shotCount: 6,
+  language: 'auto',
 }
 
 function clamp(value, min, max, fallback) {
@@ -43,7 +45,7 @@ export class Settings {
     }
     if (typeof image.baseUrl === 'string') {
       const url = image.baseUrl.trim().replace(/\/+$/, '').replace(/\/images\/generations$/, '')
-      if (url && !/^https?:\/\/[^\s]+$/i.test(url)) throw Object.assign(new Error('接口地址要以 http:// 或 https:// 开头'), { status: 400 })
+      if (url && !/^https?:\/\/[^\s]+$/i.test(url)) throw Object.assign(new Error(tr('接口地址要以 http:// 或 https:// 开头')), { status: 400 })
       next.image.baseUrl = url
     }
     if (typeof image.extra === 'string') {
@@ -55,7 +57,7 @@ export class Settings {
         } catch {
           parsed = null
         }
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw Object.assign(new Error('附加参数要是一个 JSON 对象'), { status: 400 })
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw Object.assign(new Error(tr('附加参数要是一个 JSON 对象')), { status: 400 })
       }
       next.image.extra = extra
     }
@@ -64,6 +66,7 @@ export class Settings {
     if (typeof patch.voice === 'string') next.voice = patch.voice.slice(0, 8000)
     if (typeof patch.exportDir === 'string') next.exportDir = patch.exportDir.trim().slice(0, 500)
     if (patch.imageCount !== undefined) next.imageCount = clamp(patch.imageCount, 0, 4, current.imageCount)
+    if (['auto', 'zh', 'en'].includes(patch.language)) next.language = patch.language
     if (patch.shotCount !== undefined) next.shotCount = clamp(patch.shotCount, 0, 12, current.shotCount)
     const tmp = `${this.file}.${process.pid}.tmp`
     await writeFile(tmp, JSON.stringify(next, null, 2), { mode: 0o600 })

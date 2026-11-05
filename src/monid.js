@@ -6,6 +6,7 @@ import { homedir } from 'node:os'
 import { delimiter, dirname, join } from 'node:path'
 import { assertPublicUrl } from './harvest.js'
 import { newId } from './ops.js'
+import { platformName, tr } from './i18n.js'
 
 const POST_COUNT = 20
 const RUN_WAIT_SECONDS = 120
@@ -83,8 +84,8 @@ export function parseAccountUrl(raw) {
 /** 粘贴的内容可能是短链，跟着跳转找到主页。只跟这几个平台的短链，每一跳都检查不是内网。 */
 export async function resolveAccount(text, fetchImpl = fetch) {
   const first = findUrl(text)
-  if (!first) throw Object.assign(new Error('没找到链接，请贴账号主页的链接'), { status: 400 })
-  const unsupported = () => Object.assign(new Error('认不出这个主页。目前支持小红书、抖音、B 站的账号主页链接，别的平台可以贴内容来提炼风格。'), { status: 400 })
+  if (!first) throw Object.assign(new Error(tr('没找到链接，请贴账号主页的链接')), { status: 400 })
+  const unsupported = () => Object.assign(new Error(tr('认不出这个主页。目前支持小红书、抖音、B 站的账号主页链接，别的平台可以贴内容来提炼风格。')), { status: 400 })
   let current = first
   for (let hop = 0; hop < 4; hop += 1) {
     const account = parseAccountUrl(current)
@@ -97,7 +98,7 @@ export async function resolveAccount(text, fetchImpl = fetch) {
     if (!location) break
     current = new URL(location, current).toString()
   }
-  throw Object.assign(new Error('这个链接打开后不是账号主页。请到账号主页再复制一次链接。'), { status: 400 })
+  throw Object.assign(new Error(tr('这个链接打开后不是账号主页。请到账号主页再复制一次链接。')), { status: 400 })
 }
 
 function text(value, max) {
@@ -125,7 +126,7 @@ function firstLine(value, fallback) {
 
 function assertOk(platform, output) {
   const failed = platform === '抖音' ? output?.status_code !== 0 : output?.code !== 0 && output?.code !== 200 && output?.success !== true
-  if (failed) throw new Error(text(output?.status_msg ?? output?.msg ?? output?.message, 120) || '平台没有返回内容')
+  if (failed) throw new Error(text(output?.status_msg ?? output?.msg ?? output?.message, 120) || tr('平台没有返回内容'))
 }
 
 /** 第三方接口的返回不可信：只取用得到的字段，并限制长度。 */
@@ -135,7 +136,7 @@ export function normalizePosts(platform, output) {
     return (output?.data?.notes ?? []).filter(row => /^[0-9a-f]{24}$/i.test(row?.id ?? '')).map((row) => {
       const body = text(row.desc, 2000)
       return {
-        id: row.id, title: text(row.title || row.display_title, 80) || firstLine(body, '无标题'), body, publishedAt: isoFromSeconds(row.create_time),
+        id: row.id, title: text(row.title || row.display_title, 80) || firstLine(body, tr('无标题')), body, publishedAt: isoFromSeconds(row.create_time),
         url: `https://www.xiaohongshu.com/explore/${row.id}`, cover: httpsUrl(row.images_list?.[0]?.url_size_large ?? row.images_list?.[0]?.url),
         views: count(row.view_count), likes: count(row.likes), comments: count(row.comments_count), saves: count(row.collected_count), shares: count(row.share_count),
       }
@@ -146,14 +147,14 @@ export function normalizePosts(platform, output) {
       const stat = row.statistics ?? {}
       const body = text(row.desc, 2000)
       return {
-        id: row.aweme_id, title: firstLine(body, '无标题'), body, publishedAt: isoFromSeconds(row.create_time),
+        id: row.aweme_id, title: firstLine(body, tr('无标题')), body, publishedAt: isoFromSeconds(row.create_time),
         url: `https://www.douyin.com/video/${row.aweme_id}`, cover: httpsUrl(row.video?.cover?.url_list?.[0]),
         views: count(stat.play_count), likes: count(stat.digg_count), comments: count(stat.comment_count), saves: count(stat.collect_count), shares: count(stat.share_count),
       }
     })
   }
   return (output?.data?.list?.vlist ?? []).filter(row => /^BV\w+$/.test(row?.bvid ?? '')).map(row => ({
-    id: row.bvid, title: text(row.title, 80) || '无标题', body: text(row.description, 2000), publishedAt: isoFromSeconds(row.created),
+    id: row.bvid, title: text(row.title, 80) || tr('无标题'), body: text(row.description, 2000), publishedAt: isoFromSeconds(row.created),
     url: `https://www.bilibili.com/video/${row.bvid}`, cover: httpsUrl(row.pic),
     views: count(row.play), likes: 0, comments: count(row.comment), saves: 0, shares: 0,
   }))
@@ -231,8 +232,8 @@ export function createMonidRunner(exec = execFile, locate = createLocator(exec))
       exec(found.bin, args, { timeout: timeoutSeconds * 1000, maxBuffer: MAX_OUTPUT, env: { ...process.env, PATH: found.path, NO_COLOR: '1' } }, (err, stdout, stderr) => {
         const parsed = parseOutput(stdout)
         if (parsed) return resolve(parsed)
-        if (err) return reject(new Error(text(String(stderr ?? '') || err.message, 200) || 'Monid 命令运行失败'))
-        return reject(new Error('Monid 返回的内容看不懂，可以先升级一下命令行'))
+        if (err) return reject(new Error(text(String(stderr ?? '') || err.message, 200) || tr('Monid 命令运行失败')))
+        return reject(new Error(tr('Monid 返回的内容看不懂，可以先升级一下命令行')))
       })
     })
   }
@@ -253,13 +254,13 @@ export async function monidStatus(run) {
 
 async function runEndpoint(run, endpoint, query) {
   const data = await run(['run', '-p', 'tikhub', '-e', endpoint, '--query', JSON.stringify(query), '-w', String(RUN_WAIT_SECONDS), '-j'], RUN_WAIT_SECONDS + 30)
-  if (data === null) throw Object.assign(new Error('还没装好 Monid'), { status: 400 })
+  if (data === null) throw Object.assign(new Error(tr('还没装好 Monid')), { status: 400 })
   if (data.error) {
     const authFailed = data.error.code === 'AUTH_FAILED'
-    throw Object.assign(new Error(authFailed ? 'Monid 还没配置密钥' : `Monid：${text(data.error.message, 160)}`), { status: authFailed ? 400 : 502 })
+    throw Object.assign(new Error(authFailed ? tr('Monid 还没配置密钥') : tr('Monid：{message}', { message: text(data.error.message, 160) })), { status: authFailed ? 400 : 502 })
   }
-  if (data.status === 'BLOCKED') throw Object.assign(new Error('这次导入被 Monid 后台的预算限制拦下了，可以到 app.monid.ai 调整后再试'), { status: 402 })
-  if (data.status !== 'COMPLETED') throw Object.assign(new Error(`Monid 这次没跑完（${text(data.status, 20) || '未知状态'}）`), { status: 502 })
+  if (data.status === 'BLOCKED') throw Object.assign(new Error(tr('这次导入被 Monid 后台的预算限制拦下了，可以到 app.monid.ai 调整后再试')), { status: 402 })
+  if (data.status !== 'COMPLETED') throw Object.assign(new Error(tr('Monid 这次没跑完（{status}）', { status: text(data.status, 20) || tr('未知状态') })), { status: 502 })
   return { output: data.output, cost: Number.isFinite(data.cost?.value) ? data.cost.value : 0 }
 }
 
@@ -272,7 +273,7 @@ export async function fetchAccount(account, run) {
   const posts = await runEndpoint(run, source.calls.posts, source.query(account.id, 'posts'))
   let cost = posts.cost
   const list = normalizePosts(account.platform, posts.output)
-  if (!list.length) throw Object.assign(new Error('没抓到内容，账号可能是私密的或者还没发过内容。'), { status: 404, cost })
+  if (!list.length) throw Object.assign(new Error(tr('没抓到内容，账号可能是私密的或者还没发过内容。')), { status: 404, cost })
   const extras = {}
   for (const kind of ['profile', 'relation']) {
     if (!source.calls[kind]) continue
@@ -335,7 +336,7 @@ export async function saveCovers(posts, platform, state, filesDir, fetchImpl = f
 /** 把自己账号的内容写进内容库和复盘。再抓一次只更新数字，不会重复，也不改用户动过的文字。 */
 export function importPosts(draft, { account, profile, posts, covers = new Map(), now = new Date().toISOString() }) {
   const { platform } = account
-  const nickname = profile.nickname || platform
+  const nickname = profile.nickname || platformName(platform)
   let added = 0
   for (const post of posts) {
     const externalId = `${platform}:${post.id}`

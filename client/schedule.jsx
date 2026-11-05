@@ -1,12 +1,14 @@
 // 排期：发布排期和灵感日历是同一张日历。每天一张灵感邮票，发布的内容从右边拖上来。
 import React from 'react'
 import { dispatchOps, openItem, useDesk } from './desk.js'
+import { t, useLang } from './i18n.js'
 import { Stamp, useDayMap } from './stamps.jsx'
 import { IconButton } from './ui.jsx'
-import { STATUS_LABEL, computeStreak, dayKey, displayItem, fmtDate, fmtTime, posterOf, relativeDay } from './util.js'
+import { STATUS_LABEL, computeStreak, dayKey, displayItem, fmtDate, fmtTime, posterOf, relativeDay, unit } from './util.js'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-const WEEK = ['日', '一', '二', '三', '四', '五', '六']
+// 中文原文，显示时再翻译
+const WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 const TYPE = 'text/media-desk-item'
 
 function startDrag(event, id) {
@@ -20,7 +22,7 @@ function moveTo(items, id, date) {
   const target = new Date(date)
   const previous = item.scheduledAt ? new Date(item.scheduledAt) : null
   target.setHours(previous?.getHours() ?? 20, previous?.getMinutes() ?? 0, 0, 0)
-  dispatchOps([{ op: 'schedule_item', id, scheduledAt: target.toISOString() }], { label: '修改排期' })
+  dispatchOps([{ op: 'schedule_item', id, scheduledAt: target.toISOString() }], { label: t('修改排期') })
 }
 
 function Thumb({ item }) {
@@ -72,16 +74,16 @@ function Calendar({ items }) {
         <div className="md-cal-num">{String(m + 1).padStart(2, '0')}</div>
         <div className="md-cal-month"><span>{y}</span><em>{MONTHS[m]}</em></div>
         <dl className="md-cal-stats">
-          <div><dt>连续记录</dt><dd>{streak}<small>天</small></dd></div>
-          <div><dt>本月灵感</dt><dd>{monthIdeas}<small>条</small></dd></div>
-          <div><dt>本月发布</dt><dd>{monthPosts}<small>条</small></dd></div>
+          <div><dt>{t('连续记录')}</dt><dd>{streak}<small>{unit(streak, '天')}</small></dd></div>
+          <div><dt>{t('本月灵感')}</dt><dd>{monthIdeas}<small>{t('条')}</small></dd></div>
+          <div><dt>{t('本月发布')}</dt><dd>{monthPosts}<small>{t('条')}</small></dd></div>
         </dl>
         <span className="md-grow" />
-        <IconButton icon="chevL" label="上个月" onClick={() => setCursor(new Date(y, m - 1, 1))} />
-        <button type="button" className="md-pill is-small" onClick={() => setCursor(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}>今天</button>
-        <IconButton icon="chevR" label="下个月" onClick={() => setCursor(new Date(y, m + 1, 1))} />
+        <IconButton icon="chevL" label={t('上个月')} onClick={() => setCursor(new Date(y, m - 1, 1))} />
+        <button type="button" className="md-pill is-small" onClick={() => setCursor(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}>{t('今天')}</button>
+        <IconButton icon="chevR" label={t('下个月')} onClick={() => setCursor(new Date(y, m + 1, 1))} />
       </header>
-      <div className="md-cal-weeks">{WEEK.map(w => <span key={w}>周{w}</span>)}</div>
+      <div className="md-cal-weeks">{WEEK.map(w => <span key={w}>{t(w)}</span>)}</div>
       <div className="md-cal-grid" role="grid" style={{ '--rows': rows.length / 7 }}>
         {rows.map((date) => {
           const key = dayKey(date)
@@ -104,11 +106,11 @@ function Calendar({ items }) {
             >
               <div className="md-cal-cell-top">
                 <span className="md-cal-date">{date.getDate()}</span>
-                {ideas?.length || isToday ? <div className="md-cal-stamp"><Stamp list={ideas} today={isToday} label={`${date.getMonth() + 1}月${date.getDate()}日的灵感`} onOpen={() => openItem(ideas[0].id)} /></div> : null}
+                {ideas?.length || isToday ? <div className="md-cal-stamp"><Stamp list={ideas} today={isToday} label={t('{date}的灵感', { date: fmtDate(date) })} onOpen={() => openItem(ideas[0].id)} /></div> : null}
               </div>
               <div className="md-cal-posts">
                 {posts.slice(0, 2).map(item => <Chip key={item.id} item={item} />)}
-                {posts.length > 2 ? <span className="md-cal-more">还有 {posts.length - 2} 条</span> : null}
+                {posts.length > 2 ? <span className="md-cal-more">{t('还有 {n} 条', { n: posts.length - 2 })}</span> : null}
               </div>
             </div>
           )
@@ -142,34 +144,34 @@ function Rail({ items }) {
     <aside className="md-rail-col">
       {next ? (
         <button type="button" className="md-next" onClick={() => openItem(next.id)}>
-          <span className="md-next-top"><span>下一条</span><span>{relativeDay(next.scheduledAt)}</span></span>
+          <span className="md-next-top"><span>{t('下一条')}</span><span>{relativeDay(next.scheduledAt)}</span></span>
           <b>{fmtTime(next.scheduledAt)}</b>
           <p>{displayItem(next).title}</p>
-          <span className="md-next-foot">{next.platform ? `${next.platform} · ` : ''}{STATUS_LABEL[next.status]} · {fmtDate(next.scheduledAt)}</span>
+          <span className="md-next-foot">{next.platform ? `${t(next.platform)} · ` : ''}{t(STATUS_LABEL[next.status])} · {fmtDate(next.scheduledAt)}</span>
         </button>
       ) : null}
       <section
         className={`md-tile md-tray ${over ? 'is-over' : ''}`}
-        aria-label="待排期"
+        aria-label={t('待排期')}
         onDragOver={(event) => { event.preventDefault(); setOver(true) }}
         onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOver(false) }}
         onDrop={(event) => {
           event.preventDefault()
           setOver(false)
           const id = event.dataTransfer.getData(TYPE)
-          if (id && items.find(i => i.id === id)?.scheduledAt) dispatchOps([{ op: 'schedule_item', id, scheduledAt: null }], { label: '取消排期' })
+          if (id && items.find(i => i.id === id)?.scheduledAt) dispatchOps([{ op: 'schedule_item', id, scheduledAt: null }], { label: t('取消排期') })
         }}
       >
-        <header className="md-tile-head"><h2>待排期</h2><span className="md-tile-meta">拖到日历上</span></header>
+        <header className="md-tile-head"><h2>{t('待排期')}</h2><span className="md-tile-meta">{t('拖到日历上')}</span></header>
         <div className="md-tray-scroll">
           {ready.length ? (
             <>
-              <h3>已成稿 <span>{ready.length}</span></h3>
+              <h3>{t('已成稿')} <span>{ready.length}</span></h3>
               <div className="md-tray-grid">{ready.map(item => <TrayCard key={item.id} item={item} />)}</div>
             </>
           ) : null}
-          <h3>灵感 <span>{ideas.length}</span></h3>
-          {!ready.length && !ideas.length ? <p className="md-tray-empty">记下灵感或做好稿子后，从这里拖到日历上。</p> : null}
+          <h3>{t('灵感')} <span>{ideas.length}</span></h3>
+          {!ready.length && !ideas.length ? <p className="md-tray-empty">{t('记下灵感或做好稿子后，从这里拖到日历上。')}</p> : null}
           <div className="md-tray-list">
             {ideas.map(item => (
               <button type="button" key={item.id} draggable className="md-tray-item" onDragStart={event => startDrag(event, item.id)} onClick={() => openItem(item.id)}>
@@ -185,6 +187,7 @@ function Rail({ items }) {
 }
 
 export function ScheduleView() {
+  useLang()
   const items = useDesk(s => s.state.items)
   return (
     <div className="md-board-page">

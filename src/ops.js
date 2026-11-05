@@ -1,10 +1,16 @@
 // 工作台的唯一写入口：对话、界面操作都走这里，统一校验字段并产出回执。
 // 模型输出也是不可信输入，所以这里只放行白名单字段。
+import { currentLang, platformName, tr } from './i18n.js'
 
 export const STATUSES = ['idea', 'outline', 'draft', 'ready', 'published']
 export const STATUS_LABEL = { idea: '灵感', outline: '大纲', draft: '草稿', ready: '待发布', published: '已发布' }
 export const KINDS = ['image', 'video', 'web', 'quote', 'note']
 export const PLATFORMS = ['公众号', '小红书', '抖音', 'B站', '视频号', 'X']
+
+/** 状态在当前语言下的名字。 */
+export function statusLabel(status) {
+  return tr(STATUS_LABEL[status] ?? String(status))
+}
 
 const ITEM_FIELDS = {
   title: 'text', body: 'text', kind: 'kind', url: 'url', source: 'text', tags: 'list', status: 'status', angleId: 'id',
@@ -70,7 +76,7 @@ function pick(fields, input) {
 
 function findById(list, id) {
   const entry = list.find(row => row.id === id)
-  if (!entry) throw new Error(`找不到对象：${id}`)
+  if (!entry) throw new Error(tr('找不到对象：{id}', { id }))
   return entry
 }
 
@@ -79,16 +85,18 @@ function short(text, n = 22) {
   return s.length > n ? `${s.slice(0, n)}…` : s
 }
 
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
 export function fmtWhen(iso) {
-  if (!iso) return '未排期'
+  if (!iso) return tr('未排期')
   const d = new Date(iso)
   const pad = v => String(v).padStart(2, '0')
-  return `${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${fmtShort(iso)} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 function fmtShort(iso) {
   const d = new Date(iso)
-  return `${d.getMonth() + 1}月${d.getDate()}日`
+  return currentLang() === 'en' ? `${MONTHS_EN[d.getMonth()]} ${d.getDate()}` : `${d.getMonth() + 1}月${d.getDate()}日`
 }
 
 /** 改状态时一并维护发布时间：进入已发布记下时间，离开已发布清掉。 */
@@ -114,9 +122,9 @@ const handlers = {
     const item = {
       id: newId('it'), kind: 'note', title: '', body: '', tags: [], status: 'idea', personaIds: [], createdAt: now, drafts: {}, ...fields,
     }
-    if (!item.title && !item.body && !item.media) throw new Error('灵感内容为空')
+    if (!item.title && !item.body && !item.media) throw new Error(tr('灵感内容为空'))
     // 只贴了图或视频也要有个名字，卡片和回执才有东西可显示
-    if (!item.title) item.title = short(item.body, 28) || (item.media ? `${fmtShort(now)}的${item.kind === 'video' ? '视频' : '图片'}` : '')
+    if (!item.title) item.title = short(item.body, 28) || (item.media ? tr(item.kind === 'video' ? '{date}的视频' : '{date}的图片', { date: fmtShort(now) }) : '')
     // 新灵感落在首屏文字旁边，一眼就能看到，也不会打乱已有布局
     if (!item.pos && !item.parentId) {
       const n = state.items.filter(row => !row.parentId && row.pos).length
@@ -126,7 +134,7 @@ const handlers = {
     if (item.scheduledAt) applySchedule(item, item.scheduledAt)
     if (item.status === 'published') applyStatus(item, 'published')
     state.items.unshift(item)
-    return { text: `记下灵感《${short(item.title)}》`, target: item.id, kind: 'item' }
+    return { text: tr('记下灵感《{title}》', { title: short(item.title) }), target: item.id, kind: 'item' }
   },
   update_item(state, op) {
     const item = findById(state.items, op.id)
@@ -135,145 +143,145 @@ const handlers = {
     if (scheduledAt !== undefined) applySchedule(item, scheduledAt)
     if (status !== undefined) applyStatus(item, status)
     const names = [...Object.keys(fields), ...(status !== undefined ? ['status'] : []), ...(scheduledAt !== undefined ? ['scheduledAt'] : [])].filter(key => key !== 'pos')
-    return names.length ? { text: `更新《${short(item.title)}》`, target: item.id, kind: 'item' } : null
+    return names.length ? { text: tr('更新《{title}》', { title: short(item.title) }), target: item.id, kind: 'item' } : null
   },
   delete_item(state, op) {
     const item = findById(state.items, op.id)
     state.items = state.items.filter(row => row.id !== op.id)
     for (const child of state.items) if (child.parentId === op.id) child.parentId = item.parentId ?? null
     state.metrics = state.metrics.filter(row => row.itemId !== op.id)
-    return { text: `删除《${short(item.title)}》` }
+    return { text: tr('删除《{title}》', { title: short(item.title) }) }
   },
   schedule_item(state, op) {
     const item = findById(state.items, op.id)
     const when = coerce('date', op.scheduledAt)
-    if (when === undefined) throw new Error('排期时间无效')
+    if (when === undefined) throw new Error(tr('排期时间无效'))
     const platform = coerce('platform', op.platform)
     if (platform !== undefined) item.platform = platform
     applySchedule(item, when)
-    return { text: when ? `把《${short(item.title)}》排到 ${fmtWhen(when)}${item.platform ? ` · ${item.platform}` : ''}` : `取消《${short(item.title)}》的排期`, target: item.id, kind: 'item' }
+    return { text: when ? tr('把《{title}》排到 {when}', { title: short(item.title), when: fmtWhen(when) }) + (item.platform ? ` · ${platformName(item.platform)}` : '') : tr('取消《{title}》的排期', { title: short(item.title) }), target: item.id, kind: 'item' }
   },
   set_status(state, op) {
     const item = findById(state.items, op.id)
     const status = coerce('status', op.status)
-    if (!status) throw new Error('状态无效')
+    if (!status) throw new Error(tr('状态无效'))
     applyStatus(item, status)
-    return { text: `《${short(item.title)}》状态改为「${STATUS_LABEL[status]}」`, target: item.id, kind: 'item' }
+    return { text: tr('《{title}》状态改为「{status}」', { title: short(item.title), status: statusLabel(status) }), target: item.id, kind: 'item' }
   },
   save_draft(state, op, now) {
     const item = findById(state.items, op.id)
     const format = op.format === 'script' ? 'script' : 'article'
-    if (typeof op.text !== 'string') throw new Error('草稿内容无效')
+    if (typeof op.text !== 'string') throw new Error(tr('草稿内容无效'))
     const previous = item.drafts?.[format]
     item.drafts = { ...item.drafts, [format]: { text: op.text.slice(0, 200000), by: op.by === 'ai' ? 'ai' : 'user', engine: typeof op.engine === 'string' ? op.engine : undefined, at: now, aiText: op.by === 'ai' ? op.text : previous?.aiText } }
     if (['idea', 'outline'].includes(item.status)) item.status = 'draft'
-    return { text: `保存《${short(item.title)}》的${format === 'script' ? '脚本' : '文章'}`, target: item.id, kind: 'item' }
+    return { text: tr(format === 'script' ? '保存《{title}》的脚本' : '保存《{title}》的文章', { title: short(item.title) }), target: item.id, kind: 'item' }
   },
   update_production(state, op) {
     const item = findById(state.items, op.id)
-    if (!item.production) throw new Error('这条灵感还没有成稿')
+    if (!item.production) throw new Error(tr('这条灵感还没有成稿'))
     if (typeof op.title === 'string') item.production.title = op.title.slice(0, 200)
     if (typeof op.coverText === 'string') item.production.coverText = op.coverText.slice(0, 40)
     if (typeof op.article === 'string') item.production.article = op.article.slice(0, 200000)
-    return { text: `修改《${short(item.production.title)}》`, target: item.id, kind: 'item' }
+    return { text: tr('修改《{title}》', { title: short(item.production.title) }), target: item.id, kind: 'item' }
   },
   add_person(state, op, now) {
-    const person = { id: newId('p'), name: '', role: '目标读者', note: '', traits: [], tone: Math.floor(Math.random() * 6), createdAt: now, ...pick(PERSON_FIELDS, op) }
-    if (!person.name) throw new Error('人物需要名字')
+    const person = { id: newId('p'), name: '', role: tr('目标读者'), note: '', traits: [], tone: Math.floor(Math.random() * 6), createdAt: now, ...pick(PERSON_FIELDS, op) }
+    if (!person.name) throw new Error(tr('人物需要名字'))
     state.people.push(person)
-    return { text: `添加人物「${person.name}」`, target: person.id, kind: 'person' }
+    return { text: tr('添加人物「{name}」', { name: person.name }), target: person.id, kind: 'person' }
   },
   update_person(state, op) {
     const person = findById(state.people, op.id)
     Object.assign(person, pick(PERSON_FIELDS, op))
-    return { text: `更新人物「${person.name}」`, target: person.id, kind: 'person' }
+    return { text: tr('更新人物「{name}」', { name: person.name }), target: person.id, kind: 'person' }
   },
   delete_person(state, op) {
     const person = findById(state.people, op.id)
     state.people = state.people.filter(row => row.id !== op.id)
     for (const item of state.items) item.personaIds = (item.personaIds || []).filter(id => id !== op.id)
-    return { text: `删除人物「${person.name}」` }
+    return { text: tr('删除人物「{name}」', { name: person.name }) }
   },
   add_angle(state, op, now) {
     const angle = { id: newId('a'), name: '', hook: '', prompt: '', createdAt: now, ...pick(ANGLE_FIELDS, op) }
-    if (!angle.name) throw new Error('角度需要名字')
+    if (!angle.name) throw new Error(tr('角度需要名字'))
     state.angles.push(angle)
-    return { text: `添加创作角度「${angle.name}」`, target: angle.id, kind: 'angle' }
+    return { text: tr('添加创作角度「{name}」', { name: angle.name }), target: angle.id, kind: 'angle' }
   },
   update_angle(state, op) {
     const angle = findById(state.angles, op.id)
     Object.assign(angle, pick(ANGLE_FIELDS, op))
-    return { text: `更新创作角度「${angle.name}」`, target: angle.id, kind: 'angle' }
+    return { text: tr('更新创作角度「{name}」', { name: angle.name }), target: angle.id, kind: 'angle' }
   },
   delete_angle(state, op) {
     const angle = findById(state.angles, op.id)
     state.angles = state.angles.filter(row => row.id !== op.id)
     for (const item of state.items) if (item.angleId === op.id) item.angleId = null
-    return { text: `删除创作角度「${angle.name}」` }
+    return { text: tr('删除创作角度「{name}」', { name: angle.name }) }
   },
   add_style(state, op, now) {
-    const style = { id: newId('st'), source: '手动', createdAt: now, words: [], avoid: [], samples: [], ...pick(STYLE_FIELDS, op) }
-    if (!style.name) throw new Error('风格需要名字')
+    const style = { id: newId('st'), source: tr('手动'), createdAt: now, words: [], avoid: [], samples: [], ...pick(STYLE_FIELDS, op) }
+    if (!style.name) throw new Error(tr('风格需要名字'))
     state.styles = [style, ...(state.styles ?? [])]
-    return { text: `添加风格「${style.name}」`, target: style.id, kind: 'style' }
+    return { text: tr('添加风格「{name}」', { name: style.name }), target: style.id, kind: 'style' }
   },
   update_style(state, op) {
     const style = findById(state.styles ?? [], op.id)
     Object.assign(style, pick(STYLE_FIELDS, op))
-    return { text: `更新风格「${style.name}」` }
+    return { text: tr('更新风格「{name}」', { name: style.name }) }
   },
   delete_style(state, op) {
     const style = findById(state.styles ?? [], op.id)
     state.styles = state.styles.filter(row => row.id !== op.id)
     if (state.activeStyleId === op.id) state.activeStyleId = null
-    return { text: `删除风格「${style.name}」` }
+    return { text: tr('删除风格「{name}」', { name: style.name }) }
   },
   set_style(state, op) {
     if (op.id === null) {
       state.activeStyleId = null
-      return { text: '不再使用特定风格' }
+      return { text: tr('不再使用特定风格') }
     }
     const style = findById(state.styles ?? [], op.id)
     state.activeStyleId = style.id
-    return { text: `之后按「${style.name}」的风格写` }
+    return { text: tr('之后按「{name}」的风格写', { name: style.name }) }
   },
   add_skill(state, op, now) {
-    const skill = { id: newId('s'), name: '', rule: '', source: '对话', status: 'proposed', confidence: 0.5, createdAt: now, ...pick(SKILL_FIELDS, op) }
-    if (!skill.name || !skill.rule) throw new Error('Skill 需要名字和规则')
+    const skill = { id: newId('s'), name: '', rule: '', source: tr('对话'), status: 'proposed', confidence: 0.5, createdAt: now, ...pick(SKILL_FIELDS, op) }
+    if (!skill.name || !skill.rule) throw new Error(tr('Skill 需要名字和规则'))
     state.skills.unshift(skill)
-    return { text: `沉淀规则「${skill.name}」`, target: skill.id, kind: 'skill' }
+    return { text: tr('沉淀规则「{name}」', { name: skill.name }), target: skill.id, kind: 'skill' }
   },
   update_skill(state, op) {
     const skill = findById(state.skills, op.id)
     Object.assign(skill, pick(SKILL_FIELDS, op))
-    return { text: `更新规则「${skill.name}」`, target: skill.id, kind: 'skill' }
+    return { text: tr('更新规则「{name}」', { name: skill.name }), target: skill.id, kind: 'skill' }
   },
   delete_skill(state, op) {
     const skill = findById(state.skills, op.id)
     state.skills = state.skills.filter(row => row.id !== op.id)
-    return { text: `删除规则「${skill.name}」` }
+    return { text: tr('删除规则「{name}」', { name: skill.name }) }
   },
   add_metric(state, op) {
     const metric = { id: newId('m'), date: new Date().toISOString(), views: 0, likes: 0, comments: 0, shares: 0, saves: 0, ...pick(METRIC_FIELDS, op) }
-    if (!metric.platform) throw new Error('数据需要平台')
+    if (!metric.platform) throw new Error(tr('数据需要平台'))
     state.metrics.push(metric)
-    return { text: `记录 ${metric.platform} 数据 ${metric.views} 阅读` }
+    return { text: tr('记录 {platform} 数据 {views} 阅读', { platform: platformName(metric.platform), views: metric.views }) }
   },
   add_account(state, op, now) {
     const account = { id: newId('ac'), platform: '', handle: '', url: null, followers: null, createdAt: now, ...pick(ACCOUNT_FIELDS, op) }
-    if (!account.platform && !account.handle && !account.url) throw new Error('账号信息为空')
+    if (!account.platform && !account.handle && !account.url) throw new Error(tr('账号信息为空'))
     state.accounts.push(account)
-    return { text: `添加账号档案「${account.handle || account.title || account.platform}」`, target: account.id, kind: 'account' }
+    return { text: tr('添加账号档案「{name}」', { name: account.handle || account.title || platformName(account.platform) }), target: account.id, kind: 'account' }
   },
   update_account(state, op) {
     const account = findById(state.accounts, op.id)
     Object.assign(account, pick(ACCOUNT_FIELDS, op))
-    return { text: `更新账号档案「${account.handle || account.title || account.platform}」` }
+    return { text: tr('更新账号档案「{name}」', { name: account.handle || account.title || platformName(account.platform) }) }
   },
   delete_account(state, op) {
     findById(state.accounts, op.id)
     state.accounts = state.accounts.filter(row => row.id !== op.id)
-    return { text: '删除账号档案' }
+    return { text: tr('删除账号档案') }
   },
   clear_samples(state) {
     state.items = state.items.filter(row => !row.sample)
@@ -289,7 +297,7 @@ const handlers = {
     for (const row of state.items) if (row.parentId && !ids.has(row.parentId)) row.parentId = null
     state.metrics = state.metrics.filter(row => !row.itemId || ids.has(row.itemId))
     state.sampleCleared = true
-    return { text: '已清空全部示例数据' }
+    return { text: tr('已清空全部示例数据') }
   },
 }
 
@@ -306,7 +314,7 @@ export function applyOps(state, ops) {
   for (const op of Array.isArray(ops) ? ops : []) {
     const handler = Object.hasOwn(handlers, op?.op) ? handlers[op.op] : undefined
     if (!handler) {
-      errors.push(`不支持的操作：${String(op?.op)}`)
+      errors.push(tr('不支持的操作：{op}', { op: String(op?.op) }))
       continue
     }
     try {

@@ -1,6 +1,7 @@
 // 灵感卡片：散落、瀑布流复用同一张卡。
 import React from 'react'
 import { setDesk } from './desk.js'
+import { t } from './i18n.js'
 import { Icon } from './ui.jsx'
 import { KIND_LABEL, STATUS_LABEL, displayItem, hash, relativeDay } from './util.js'
 
@@ -46,7 +47,7 @@ export function Card({ item: raw, onOpen }) {
       data-card={item.id}
       tabIndex={0}
       role="button"
-      aria-label={`${KIND_LABEL[item.kind]}：${item.title}`}
+      aria-label={t('{kind}：{title}', { kind: t(KIND_LABEL[item.kind]), title: item.title })}
       onPointerEnter={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
       onClick={event => onOpen?.(raw, event)}
@@ -77,9 +78,9 @@ export function Card({ item: raw, onOpen }) {
       )}
 
       <footer className="md-card-foot">
-        <span className={`md-dot status-${item.status}`} title={STATUS_LABEL[item.status]} />
-        <span className="md-card-source">{item.kind === 'web' && item.url ? hostOf(item.url) : item.source || KIND_LABEL[item.kind]}</span>
-        <span className="md-card-time">{running ? <span className="md-shimmer">正在成稿</span> : item.production?.status === 'done' ? '已成稿' : item.scheduledAt && item.status !== 'published' ? relativeDay(item.scheduledAt) : ''}</span>
+        <span className={`md-dot status-${item.status}`} title={t(STATUS_LABEL[item.status])} />
+        <span className="md-card-source">{item.kind === 'web' && item.url ? hostOf(item.url) : item.source || t(KIND_LABEL[item.kind])}</span>
+        <span className="md-card-time">{running ? <span className="md-shimmer">{t('正在成稿')}</span> : item.production?.status === 'done' ? t('已成稿') : item.scheduledAt && item.status !== 'published' ? relativeDay(item.scheduledAt) : ''}</span>
       </footer>
     </article>
   )

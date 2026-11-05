@@ -1,6 +1,7 @@
 // 侧边对话：一句话改一切。解析和执行都在 Host，这里只负责展示回执。
 import React from 'react'
 import { clearChat, openItem, sendChat, setDesk, undo, useDesk } from './desk.js'
+import { t } from './i18n.js'
 import { Icon, IconButton } from './ui.jsx'
 
 const SUGGESTIONS = [
@@ -30,8 +31,8 @@ function Message({ message, canUndoThis }) {
       {message.errors?.map((error, index) => <p key={index} className="md-msg-error">{error}</p>)}
       {message.notice ? <p className="md-msg-note">{message.notice}</p> : null}
       <footer>
-        <span>{message.engine === 'local' ? '本地规则' : ''}</span>
-        {canUndoThis ? <button type="button" onClick={undo}><Icon name="undo" size={12} />撤销</button> : null}
+        <span>{message.engine === 'local' ? t('本地规则') : ''}</span>
+        {canUndoThis ? <button type="button" onClick={undo}><Icon name="undo" size={12} />{t('撤销')}</button> : null}
       </footer>
     </div>
   )
@@ -75,11 +76,11 @@ export function ChatPanel({ itemId, head, top = null, suggestions, placeholder, 
         {top}
         {chat.length === 0 && intro ? (
           <div className="md-dock-intro">
-            <h3>说一句话，<br />剩下的我来补全。</h3>
-            <p>选题、灵感、内容、排期、风格和写作标准，都可以直接说。每一步都能撤销。</p>
+            <h3>{t('说一句话，')}<br />{t('剩下的我来补全。')}</h3>
+            <p>{t('选题、灵感、内容、排期、风格和写作标准，都可以直接说。每一步都能撤销。')}</p>
           </div>
         ) : chat.map(message => <Message key={message.id} message={message} canUndoThis={message === lastBot && message.undoable} />)}
-        {thinking ? <div className="md-msg is-bot"><span className="md-shimmer">正在处理……</span></div> : null}
+        {thinking ? <div className="md-msg is-bot"><span className="md-shimmer">{t('正在处理……')}</span></div> : null}
       </div>
       {suggestions?.length ? (
         <div className="md-suggest">
@@ -90,14 +91,14 @@ export function ChatPanel({ itemId, head, top = null, suggestions, placeholder, 
         {quote ? (
           <div className="md-composer-ctx">
             <Icon name="target" size={12} />
-            <span>{quote.label}{quote.text ? `：${quote.text}` : ''}</span>
-            <button type="button" aria-label="取消引用" onClick={() => setDesk({ chatQuote: null })}><Icon name="close" size={11} /></button>
+            <span>{quote.text ? t('{label}：{text}', { label: quote.label, text: quote.text }) : quote.label}</span>
+            <button type="button" aria-label={t('取消引用')} onClick={() => setDesk({ chatQuote: null })}><Icon name="close" size={11} /></button>
           </div>
         ) : null}
         <textarea
           ref={input}
           rows={1}
-          aria-label="给助手发消息"
+          aria-label={t('给助手发消息')}
           value={text}
           disabled={disabled}
           placeholder={placeholder}
@@ -109,7 +110,7 @@ export function ChatPanel({ itemId, head, top = null, suggestions, placeholder, 
             }
           }}
         />
-        <button type="submit" className="md-send" aria-label="发送" disabled={!text.trim() || thinking || disabled}><Icon name="send" size={15} /></button>
+        <button type="submit" className="md-send" aria-label={t('发送')} disabled={!text.trim() || thinking || disabled}><Icon name="send" size={15} /></button>
       </form>
     </div>
   )
@@ -121,21 +122,21 @@ export function ChatDock() {
   const modelError = useDesk(s => s.modelError)
   const hasChat = useDesk(s => s.state.chat.some(m => !m.itemId))
   return (
-    <aside className="md-dock" aria-label="对话助手">
+    <aside className="md-dock" aria-label={t('对话助手')}>
       <ChatPanel
         head={(
           <>
-            <h2>助手</h2>
-            <span className={`md-engine ${!model ? '' : modelOk === false ? 'is-down' : 'is-live'}`} title={!model ? '当前没有可用模型，只能处理常见说法' : modelOk === false ? `模型 ${model} 暂时用不了，现在只能处理常见说法。${modelError ? `\n${modelError}` : ''}` : `使用 DeepSeek Harness 当前模型 ${model}`}>
-              <i />{!model ? '本地规则' : modelOk === false ? '模型未连接' : model}
+            <h2>{t('助手')}</h2>
+            <span className={`md-engine ${!model ? '' : modelOk === false ? 'is-down' : 'is-live'}`} title={!model ? t('当前没有可用模型，只能处理常见说法') : modelOk === false ? `${t('模型 {model} 暂时用不了，现在只能处理常见说法。', { model })}${modelError ? `\n${modelError}` : ''}` : t('使用 DeepSeek Harness 当前模型 {model}', { model })}>
+              <i />{!model ? t('本地规则') : modelOk === false ? t('模型未连接') : model}
             </span>
             <span style={{ flex: 1 }} />
-            {hasChat ? <IconButton icon="refresh" label="清空对话" onClick={clearChat} /> : null}
-            <IconButton icon="close" label="收起对话" onClick={() => setDesk({ dockOpen: false })} />
+            {hasChat ? <IconButton icon="refresh" label={t('清空对话')} onClick={clearChat} /> : null}
+            <IconButton icon="close" label={t('收起对话')} onClick={() => setDesk({ dockOpen: false })} />
           </>
         )}
-        suggestions={SUGGESTIONS}
-        placeholder="想改什么，直接说"
+        suggestions={SUGGESTIONS.map(row => t(row))}
+        placeholder={t('想改什么，直接说')}
       />
     </aside>
   )
