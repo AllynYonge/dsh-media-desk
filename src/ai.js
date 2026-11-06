@@ -3,6 +3,13 @@
 import { STATUS_LABEL, statusLabel } from './ops.js'
 import { activeStyle, styleToVoice } from './style.js'
 import { byLang, currentLang, ENGLISH_DIRECTIVE, tr } from './i18n.js'
+import { randomUUID } from 'node:crypto'
+
+/**
+ * 插件在会话之外调模型，自己带一个会话标识。有些网关（如 opencode-go）按会话路由，
+ * 缺了 x-opencode-session 头会直接返回 400 MissingSessionID；DSH 会把 sessionId 映射成这类头。
+ */
+export const PLUGIN_SESSION_ID = `dsh-media-desk-${randomUUID()}`
 
 /** 最近一次模型调用的结果。选了模型不等于能用，比如还没配密钥。 */
 export const modelStatus = { ok: null, error: null }
@@ -20,10 +27,10 @@ export function modelInfo(ctx) {
 /**
  * 调一次模型并流式回传文本。
  * @param {object} ctx - Cordis 上下文。
- * @param {{system: string, user: string, maxTokens?: number, signal?: AbortSignal, onText?: (delta: string) => void, light?: boolean}} request - 请求。
+ * @param {{system: string, user: string, maxTokens?: number, signal?: AbortSignal, onText?: (delta: string) => void, light?: boolean, sessionId?: string}} request - 请求。
  * @returns {Promise<{text: string, model: string}>} 完整文本与模型名。
  */
-export async function callModel(ctx, { system, user, maxTokens = 4000, signal, onText, light = false }) {
+export async function callModel(ctx, { system, user, maxTokens = 4000, signal, onText, light = false, sessionId = PLUGIN_SESSION_ID }) {
   const info = modelInfo(ctx)
   if (!info) throw new Error(tr('当前没有可用模型'))
   const llm = ctx.get('llm')
@@ -41,6 +48,7 @@ export async function callModel(ctx, { system, user, maxTokens = 4000, signal, o
       ...call.config,
       system: currentLang() === 'en' ? `${system}\n${ENGLISH_DIRECTIVE}` : system,
       messages: [{ role: 'user', content: [{ type: 'text', text: user }], source: { kind: 'dsh-media-desk' } }],
+      sessionId,
       signal,
     })) {
       if (chunk.type === 'text-delta') {

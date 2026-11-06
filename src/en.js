@@ -97,6 +97,9 @@ export const EN = {
   返回的内容不是图片: 'What came back isn\'t an image',
   '生图超时，可以重试': 'Image generation timed out. You can retry.',
   '连不上生图服务：{reason}': 'Can\'t reach the image service: {reason}',
+  '图片地址不对：{reason}': 'The image URL is invalid: {reason}',
+  '生图服务返回的图片地址无法识别：{url}': 'The image service returned an image URL that can\'t be used: {url}',
+  '生图服务只返回了它本机的文件路径，没有可下载的地址': 'The image service only returned a file path on its own machine, with no URL to download from',
 
   // 本地规则对话
   '接下来没有排期的内容。': 'Nothing is scheduled yet.',

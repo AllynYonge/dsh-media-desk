@@ -116,6 +116,16 @@ export function ChatPanel({ itemId, head, top = null, suggestions, placeholder, 
   )
 }
 
+/** 选到了模型但调用失败：把服务返回的原因摆出来，不说成「没连上」。 */
+function ModelAlert({ model, error }) {
+  return (
+    <div className="md-model-alert" role="status">
+      <strong>{t('模型 {model} 调用失败', { model })}</strong>
+      <p>{error.length > 280 ? `${error.slice(0, 280)}…` : error}</p>
+    </div>
+  )
+}
+
 export function ChatDock() {
   const model = useDesk(s => s.model)
   const modelOk = useDesk(s => s.modelOk)
@@ -127,14 +137,15 @@ export function ChatDock() {
         head={(
           <>
             <h2>{t('助手')}</h2>
-            <span className={`md-engine ${!model ? '' : modelOk === false ? 'is-down' : 'is-live'}`} title={!model ? t('当前没有可用模型，只能处理常见说法') : modelOk === false ? `${t('模型 {model} 暂时用不了，现在只能处理常见说法。', { model })}${modelError ? `\n${modelError}` : ''}` : t('使用 DeepSeek Harness 当前模型 {model}', { model })}>
-              <i />{!model ? t('本地规则') : modelOk === false ? t('模型未连接') : model}
+            <span className={`md-engine ${!model ? '' : modelOk === false ? 'is-down' : 'is-live'}`} title={!model ? t('当前没有可用模型，只能处理常见说法') : modelOk === false ? `${t('模型 {model} 调用失败，现在只能处理常见说法。', { model })}${modelError ? `\n${modelError}` : ''}` : t('使用 DeepSeek Harness 当前模型 {model}', { model })}>
+              <i />{!model ? t('本地规则') : modelOk === false ? t('模型调用失败') : model}
             </span>
             <span style={{ flex: 1 }} />
             {hasChat ? <IconButton icon="refresh" label={t('清空对话')} onClick={clearChat} /> : null}
             <IconButton icon="close" label={t('收起对话')} onClick={() => setDesk({ dockOpen: false })} />
           </>
         )}
+        top={model && modelOk === false && modelError ? <ModelAlert model={model} error={modelError} /> : null}
         suggestions={SUGGESTIONS.map(row => t(row))}
         placeholder={t('想改什么，直接说')}
       />

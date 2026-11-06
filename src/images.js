@@ -25,6 +25,95 @@ function explain(status, detail) {
   return detail ? tr('生图服务返回 {status}：{detail}', { status, detail }) : tr('生图服务返回 {status}', { status })
 }
 
+/** 确定性的错误：重试多少次结果都一样，不该当成网络抖动。 */
+function permanent(error) {
+  error.permanent = true
+  return error
+}
+
+/**
+ * 网关回传的图片地址可能是完整链接，也可能只是一段相对路径（如 /v1/images/xxx/content），
+ * 还可能挂在自定义前缀下：baseUrl 是 …/qwenimage/v1，路径却是 /v1/…。按几种拼法各列一个候选。
+ * @param {string} raw - 返回里的 url 字段。
+ * @param {string} baseUrl - 设置里的接口地址。
+ * @returns {string[]} 去重后的候选地址，越靠前越可能对。
+ */
+export function imageUrlCandidates(raw, baseUrl) {
+  const value = String(raw ?? '').trim()
+  const list = []
+  const add = (candidate) => {
+    try {
+      const url = new URL(candidate)
+      if ((url.protocol === 'http:' || url.protocol === 'https:') && !list.includes(url.href)) list.push(url.href)
+    } catch {
+      // 拼不出来的候选直接跳过
+    }
+  }
+  if (!value) return list
+  if (/^[a-z][a-z\d+.-]*:/i.test(value)) {
+    add(value)
+    return list
+  }
+  let base
+  try {
+    base = new URL(String(baseUrl).replace(/\/+$/, '') + '/')
+  } catch {
+    return list
+  }
+  if (value.startsWith('//')) {
+    add(`${base.protocol}${value}`)
+    return list
+  }
+  const mount = base.pathname.replace(/\/+$/, '')
+  if (value.startsWith('/')) {
+    // 路径已经带上挂载前缀时原样用；否则先补上去掉版本号的前缀，再试补完整前缀，最后才试站点根
+    const prefix = mount.replace(/\/v\d+$/i, '')
+    const within = root => root && (value === root || value.startsWith(`${root}/`))
+    if (!within(mount) && !within(prefix)) {
+      if (prefix) add(`${base.origin}${prefix}${value}`)
+      if (mount && mount !== prefix) add(`${base.origin}${mount}${value}`)
+    }
+    add(`${base.origin}${value}`)
+  } else {
+    add(new URL(value, base).href)
+    add(new URL(value, `${base.origin}/`).href)
+  }
+  return list
+}
+
+/** 地址跟接口地址同源时，就是用户自己填的服务，不需要再拦内网，下载也带上同一个密钥。 */
+function sameOrigin(href, baseUrl) {
+  try {
+    return new URL(href).origin === new URL(baseUrl).origin
+  } catch {
+    return false
+  }
+}
+
+async function downloadImage(entry, image, fetchImpl, signal) {
+  const candidates = imageUrlCandidates(entry.url, image.baseUrl)
+  if (!candidates.length) throw permanent(new Error(tr('生图服务返回的图片地址无法识别：{url}', { url: String(entry.url).slice(0, 120) })))
+  let last = null
+  for (const href of candidates) {
+    const trusted = sameOrigin(href, image.baseUrl)
+    let url
+    try {
+      url = trusted ? new URL(href) : await assertPublicUrl(href)
+    } catch (err) {
+      last = permanent(err)
+      continue
+    }
+    const download = await fetchImpl(url, { signal, ...(trusted && image.apiKey ? { headers: { authorization: `Bearer ${image.apiKey}` } } : {}) })
+    if (!download.ok) {
+      last = new Error(tr('下载图片失败（{status}）', { status: download.status }))
+      last.retryable = download.status >= 500
+      continue
+    }
+    return { buffer: Buffer.from(await download.arrayBuffer()), revisedPrompt: entry.revised_prompt }
+  }
+  throw last
+}
+
 async function requestOnce(image, prompt, fetchImpl, signal) {
   const extra = image.extra ? JSON.parse(image.extra) : {}
   const body = { model: image.model, prompt, n: 1, ...(image.size ? { size: image.size } : {}), ...(image.quality ? { quality: image.quality } : {}), ...extra }
@@ -49,15 +138,15 @@ async function requestOnce(image, prompt, fetchImpl, signal) {
   // OpenAI 系放在 data[0]，部分国内服务放在 images[0]
   const entry = data?.data?.[0] ?? data?.images?.[0]
   if (entry?.b64_json) return { buffer: Buffer.from(entry.b64_json, 'base64'), revisedPrompt: entry.revised_prompt }
-  if (entry?.url) {
-    const url = await assertPublicUrl(entry.url)
-    const download = await fetchImpl(url, { signal })
-    if (!download.ok) throw new Error(tr('下载图片失败（{status}）', { status: download.status }))
-    return { buffer: Buffer.from(await download.arrayBuffer()), revisedPrompt: entry.revised_prompt }
-  }
-  const error = new Error(tr('生图服务没有返回图片'))
+  if (entry?.url) return downloadImage(entry, image, fetchImpl, signal)
+  const error = new Error(entry?.file_path ? tr('生图服务只返回了它本机的文件路径，没有可下载的地址') : tr('生图服务没有返回图片'))
   error.retryable = !data
   throw error
+}
+
+/** new URL 解析失败也是 TypeError，但它不是网络问题。 */
+function isUrlError(err) {
+  return err?.code === 'ERR_INVALID_URL' || /Invalid URL/i.test(err?.message ?? '')
 }
 
 /**
@@ -81,11 +170,12 @@ export async function generateImage(image, prompt, { fetchImpl = fetch, signal }
     } catch (err) {
       if (signal?.aborted) throw err
       lastError = err
+      if (err.permanent || isUrlError(err)) break
       const network = err.name === 'TypeError' || err.name === 'TimeoutError'
       if (!err.retryable && !network) break
     }
   }
-  const message = lastError.name === 'TimeoutError' ? tr('生图超时，可以重试') : lastError.name === 'TypeError' ? tr('连不上生图服务：{reason}', { reason: redact(lastError.cause?.code ?? lastError.message, image.apiKey) }) : redact(lastError.message, image.apiKey)
+  const message = lastError.name === 'TimeoutError' ? tr('生图超时，可以重试') : isUrlError(lastError) ? tr('图片地址不对：{reason}', { reason: redact(lastError.message, image.apiKey) }) : lastError.name === 'TypeError' ? tr('连不上生图服务：{reason}', { reason: redact(lastError.cause?.code ?? lastError.message, image.apiKey) }) : redact(lastError.message, image.apiKey)
   throw new Error(message)
 }
 
