@@ -253,6 +253,16 @@ I'm [蜗牛的科技笔记](https://www.xiaohongshu.com/user/profile/5faedce8000
 - The [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) team, for an open plugin system to build on.
 - [dsh-Go](https://github.com/ccch1mneyyy/dsh-Go), whose README layout inspired this one.
 
+### Special thanks
+
+To the people who tried it carefully, tracked problems down and wrote them up clearly:
+
+- [secountAiAccount](https://github.com/secountAiAccount), for spotting the unreadable style dropdown in dark mode ([#1](https://github.com/woniuniuniu/dsh-media-desk/issues/1)) and the settings icon that looked like a theme toggle ([#2](https://github.com/woniuniuniu/dsh-media-desk/issues/2))
+- [isxiaokunos](https://github.com/isxiaokunos), for pinning down why image gateways that return relative URLs always failed, were misreported and needlessly retried, with a patch and real measurements ([#3](https://github.com/woniuniuniu/dsh-media-desk/issues/3))
+- [townmi (Harry Tang)](https://github.com/townmi), for finding that opencode-go needs a session header and that the panel misreported the failure as "offline" ([#4](https://github.com/woniuniuniu/dsh-media-desk/issues/4))
+
+[Issues](https://github.com/woniuniuniu/dsh-media-desk/issues) are always welcome. Every one gets read.
+
 ## Development
 
 ```bash
