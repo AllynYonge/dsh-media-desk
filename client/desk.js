@@ -8,7 +8,7 @@ const BASE = 'media-desk/'
 let snapshot = {
   state: null, model: null, modelOk: null, modelError: null, canUndo: false, error: null,
   view: 'home', mode: 'scatter', focusId: null, sheetOrigin: null, dockOpen: true, studioDock: false, chatQuote: null, query: '', kindFilter: 'all', related: null,
-  live: {}, settings: null, settingsOpen: false, thinking: false, toast: null, capture: null, dialog: null,
+  live: {}, settings: null, settingsOpen: false, modelPickOpen: false, thinking: false, toast: null, capture: null, dialog: null,
 }
 const listeners = new Set()
 
@@ -150,6 +150,23 @@ export async function saveSettings(payload) {
     setLanguagePreference(settings.language)
     setDesk({ settings })
     toast(t('设置已保存'))
+    return true
+  } catch (err) {
+    report(err)
+    return false
+  }
+}
+
+export async function fetchModels() {
+  return request('models')
+}
+
+/** 切换助手模型；两个字段都空表示跟随默认。 */
+export async function saveAssistant(assistant) {
+  try {
+    const settings = await request('settings', { assistant })
+    setDesk({ settings, model: settings.assistantEffective ?? snapshot.model })
+    toast(t('助手模型已切换'))
     return true
   } catch (err) {
     report(err)
@@ -335,3 +352,4 @@ export async function exportSkills() {
 export function fetchInsights() {
   return request('insights')
 }
+

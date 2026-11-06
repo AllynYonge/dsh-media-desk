@@ -92,3 +92,34 @@ test('#4 模型调用带上会话标识，供 opencode-go 这类按会话路由�
   assert.match(PLUGIN_SESSION_ID, /^dsh-media-desk-[\da-f-]{36}$/)
   assert.deepEqual(requests.map(row => row.sessionId), [PLUGIN_SESSION_ID, PLUGIN_SESSION_ID, 'custom'])
 })
+
+test('PR #5 助手模型自选：指定后优先用，清空后跟随默认；提供方和模型要一起填', async () => {
+  const { modelInfo, setAssistantModel } = await import('../src/ai.js')
+  const { Settings } = await import('../src/settings.js')
+  const { mkdtemp, rm } = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const ctx = { get: name => (name === 'llm' ? {} : name === 'agentDefaultModel' ? { currentSelection: () => ({ provider: 'deepseek', model: 'deepseek-chat' }) } : undefined) }
+  try {
+    assert.equal(modelInfo(ctx).model, 'deepseek-chat')
+    setAssistantModel({ provider: 'opencode-go', model: 'deepseek-v4.1-flash' })
+    assert.deepEqual(modelInfo(ctx), { provider: 'opencode-go', model: 'deepseek-v4.1-flash', label: 'deepseek-v4.1-flash' })
+    setAssistantModel({ provider: '', model: '' })
+    assert.equal(modelInfo(ctx).model, 'deepseek-chat')
+  } finally {
+    setAssistantModel(null)
+  }
+
+  const dir = await mkdtemp(join(tmpdir(), 'media-desk-'))
+  try {
+    const settings = new Settings(dir)
+    assert.deepEqual((await settings.read()).assistant, { provider: '', model: '' })
+    await settings.update({ assistant: { provider: ' opencode-go ', model: 'm' } })
+    assert.deepEqual((await settings.read()).assistant, { provider: 'opencode-go', model: 'm' })
+    await assert.rejects(settings.update({ assistant: { provider: 'opencode-go', model: '' } }), /一起填/)
+    await settings.update({ voice: 'x' })
+    assert.deepEqual((await settings.read()).assistant, { provider: 'opencode-go', model: 'm' })
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})

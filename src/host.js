@@ -4,7 +4,7 @@ import { execFile } from 'node:child_process'
 import { stat, writeFile } from 'node:fs/promises'
 import { dirname, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { callModel, chatPrompts, extractJson, modelInfo, modelStatus } from './ai.js'
+import { assistantModelOverride, callModel, chatPrompts, defaultSelection, extractJson, modelInfo, modelStatus, setAssistantModel } from './ai.js'
 import { defaultExportDir, resolveExportDir, saveProduction } from './export.js'
 import { harvest, harvestText } from './harvest.js'
 import { generateImage } from './images.js'
@@ -310,6 +310,20 @@ async function route(ctx, store, desk, req, res) {
       return json(res, 200, { production: item?.production ?? null, status: item?.status, live: desk.producer.status(id) })
     }
     if (path === 'settings') return json(res, 200, { ...publicSettings(await desk.settings.read()), defaultExportDir: defaultExportDir() })
+    if (path === 'models') {
+      // 列出 Harness 里已接的提供方和它们公布的模型，给工作台的助手模型选择器用
+      const llm = ctx.get('llm')
+      const providers = llm ? await llm.listProviders() : []
+      const settled = await Promise.allSettled(providers.map(async p => ({
+        provider: p.id, name: p.name,
+        models: (await llm.listModels(p.id)).map(m => ({ id: m.id, name: m.name || m.id })),
+      })))
+      return json(res, 200, {
+        providers: settled.filter(r => r.status === 'fulfilled').map(r => r.value).filter(p => p.models.length),
+        default: defaultSelection(ctx),
+        current: assistantModelOverride(),
+      })
+    }
     if (path === 'insights') return json(res, 200, computeInsights(await store.read()))
     if (path === 'monid/status') return json(res, 200, await monidStatus(desk.monid))
     return json(res, 404, { error: tr('接口不存在') })
@@ -382,8 +396,15 @@ async function route(ctx, store, desk, req, res) {
     }
     case 'style/extract': return json(res, 200, await extractStyle(ctx, store, body))
     case 'monid/import': return json(res, 200, await importAccountRoute(ctx, store, desk, body))
-    case 'settings':
-      return json(res, 200, { ...publicSettings(await desk.settings.update(body)), defaultExportDir: defaultExportDir() })
+    case 'settings': {
+      const before = modelInfo(ctx)
+      const updated = await desk.settings.update(body)
+      setAssistantModel(updated.assistant)
+      const after = modelInfo(ctx)
+      // 换了模型，上一个模型的失败状态不再算数
+      if (before?.provider !== after?.provider || before?.model !== after?.model) Object.assign(modelStatus, { ok: null, error: null })
+      return json(res, 200, { ...publicSettings(updated), defaultExportDir: defaultExportDir(), assistantEffective: modelInfo(ctx)?.label ?? null })
+    }
     case 'settings/test': {
       const settings = await desk.settings.read()
       if (!imageReady(settings)) return json(res, 400, { error: tr('先填好接口地址、模型和密钥') })
@@ -443,6 +464,8 @@ export default {
     const producer = new Producer({ store, settings, callText: options => callModel(ctx, options), generate: generateImage })
     const monid = createMonidRunner()
     const desk = { settings, producer, monid }
+    // 启动时恢复用户在工作台里选过的助手模型
+    settings.read().then(saved => setAssistantModel(saved.assistant)).catch(() => {})
     ctx.effect(() => ctx.webServer.register({
       kind: 'prefix',
       path: '/media-desk',
