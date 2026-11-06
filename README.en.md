@@ -255,13 +255,21 @@ I'm [蜗牛的科技笔记](https://www.xiaohongshu.com/user/profile/5faedce8000
 
 ### Special thanks
 
-To the people who tried it carefully, tracked problems down and wrote them up clearly:
+To the people who tried it carefully, tracked problems down and sent fixes:
 
 - [secountAiAccount](https://github.com/secountAiAccount), for spotting the unreadable style dropdown in dark mode ([#1](https://github.com/woniuniuniu/dsh-media-desk/issues/1)) and the settings icon that looked like a theme toggle ([#2](https://github.com/woniuniuniu/dsh-media-desk/issues/2))
 - [isxiaokunos](https://github.com/isxiaokunos), for pinning down why image gateways that return relative URLs always failed, were misreported and needlessly retried, with a patch and real measurements ([#3](https://github.com/woniuniuniu/dsh-media-desk/issues/3))
 - [townmi (Harry Tang)](https://github.com/townmi), for finding that opencode-go needs a session header and that the panel misreported the failure as "offline" ([#4](https://github.com/woniuniuniu/dsh-media-desk/issues/4))
+- [zach22-1999](https://github.com/zach22-1999), for fixing the crash when importing X posts whose media field isn't a list ([#6](https://github.com/woniuniuniu/dsh-media-desk/pull/6))
+- [chenxupeng1990-eng](https://github.com/chenxupeng1990-eng), for letting the assistant use any connected model instead of only the DSH default ([#5](https://github.com/woniuniuniu/dsh-media-desk/pull/5))
 
 [Issues](https://github.com/woniuniuniu/dsh-media-desk/issues) are always welcome. Every one gets read.
+
+### Contributors
+
+Thanks to everyone who has contributed code:
+
+[![Contributors](https://contrib.rocks/image?repo=woniuniuniu/dsh-media-desk)](https://github.com/woniuniuniu/dsh-media-desk/graphs/contributors)
 
 ## Development
 
