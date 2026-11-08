@@ -274,6 +274,8 @@ To the people who tried it carefully, tracked problems down and sent fixes:
 - [townmi (Harry Tang)](https://github.com/townmi), for finding that opencode-go needs a session header and that the panel misreported the failure as "offline" ([#4](https://github.com/woniuniuniu/dsh-media-desk/issues/4))
 - [zach22-1999](https://github.com/zach22-1999), for fixing the crash when importing X posts whose media field isn't a list ([#6](https://github.com/woniuniuniu/dsh-media-desk/pull/6))
 - [chenxupeng1990-eng](https://github.com/chenxupeng1990-eng), for letting the assistant use any connected model instead of only the DSH default ([#5](https://github.com/woniuniuniu/dsh-media-desk/pull/5))
+- [dsh-agent-sixtyseven](https://github.com/dsh-agent-sixtyseven), for tracking down why account import on Windows kept saying "Monid isn’t installed yet" and fixing both how the command is found and how it's run ([#7](https://github.com/woniuniuniu/dsh-media-desk/issues/7), [#8](https://github.com/woniuniuniu/dsh-media-desk/pull/8))
+- [smallflycar](https://github.com/smallflycar), for letting the desk draw images with a GPT subscription, no separate image API needed ([#9](https://github.com/woniuniuniu/dsh-media-desk/pull/9))
 
 [Issues](https://github.com/woniuniuniu/dsh-media-desk/issues) are always welcome. Every one gets read.
 
